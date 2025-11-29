@@ -1,3 +1,5 @@
+<img src="https://raw.githubusercontent.com/ObelusFi/logos_and_icons/refs/heads/main/trioxide_logo.svg" alt="Trioxide logo">
+
 # Trioxide
 
 Svelte 5 customizable componets, focused on non-trivial UI pieces that are tedious to reimplement.
