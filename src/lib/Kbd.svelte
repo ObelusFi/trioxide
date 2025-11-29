@@ -42,7 +42,11 @@
 	} = $props();
 
 	const isMac = $derived.by(() => {
-		return platform == 'auto' ? /Mac|iPhone|iPod|iPad/.test(navigator.platform) : platform == 'mac';
+		return platform == 'auto'
+			? typeof navigator !== 'undefined'
+				? /Mac|iPhone|iPod|iPad/.test(navigator.platform)
+				: false
+			: platform == 'mac';
 	});
 
 	const omit = <T extends Record<string, any> | undefined>(
