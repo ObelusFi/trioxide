@@ -1,6 +1,11 @@
 {
 	"name": "@obelusfi/trioxide",
 	"version": "0.0.1",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ObelusFi/trioxide"
+	},
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run prepack",
@@ -10,7 +15,8 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
-		"lint": "prettier --check ."
+		"lint": "prettier --check .",
+		"release": "bun run scripts/release.ts"
 	},
 	"files": [
 		"dist",
@@ -43,6 +49,7 @@
 		"@tailwindcss/postcss": "^4.1.17",
 		"@tailwindcss/typography": "^0.5.19",
 		"@tailwindcss/vite": "^4.1.17",
+		"@types/bun": "^1.3.3",
 		"@types/markdown-it": "^14.1.2",
 		"markdown-it": "^14.1.0",
 		"mdsvex": "^0.12.6",
@@ -60,6 +67,12 @@
 		"vite": "^7.2.4"
 	},
 	"keywords": [
-		"svelte"
+		"svelte",
+		"components",
+		"context-menu",
+		"dock-layout",
+		"drag-and-drop",
+		"keyboard-shortcuts",
+		"rtl"
 	]
 }
