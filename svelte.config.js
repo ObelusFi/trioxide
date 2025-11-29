@@ -35,7 +35,9 @@ const mdsvexOptions = {
 const config = {
 	preprocess: [mdsvex(mdsvexOptions), vitePreprocess()],
 	kit: {
-		adapter: adapter()
+		adapter: adapter({
+			pages: 'doc'
+		})
 	},
 	extensions: ['.svelte', '.svx']
 };

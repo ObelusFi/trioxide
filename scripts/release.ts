@@ -85,7 +85,7 @@ await writeFile(changelogPath, nextChangelog);
 await $`git add .`;
 await $`git commit -m ${`chore: release ${tag}`}`;
 await $`git tag ${tag}`;
-await $`git push origin ${branch} --follow-tags`;
+await $`git push --tag`;
 await $`npm publish --access public`;
 
 const releaseNotes = `Changes in ${tag} (${date})\n\n${commitBullets}\n`;
