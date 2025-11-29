@@ -1,0 +1,117 @@
+:root{
+	--spacing: 0.25rem;
+	--radius-md: 6px;
+	--radius-xs: 2px;
+	--container-3xs: 256px;
+	--text-sm--line-height: calc(1.25 / 0.875);
+	--rounded-full: calc(infinity * 1px);
+}
+
+.trioxide_light {
+	--trioxide_neutral-1: #fcfcfc;
+	--trioxide_neutral-2: #f9f9f9;
+	--trioxide_neutral-3: #f0f0f0;
+	--trioxide_neutral-4: #e8e8e8;
+	--trioxide_neutral-5: #e0e0e0;
+	--trioxide_neutral-6: #d9d9d9;
+	--trioxide_neutral-7: #cecece;
+	--trioxide_neutral-8: #bbbbbb;
+	--trioxide_neutral-9: #8d8d8d;
+	--trioxide_neutral-10: #838383;
+	--trioxide_neutral-11: #646464;
+	--trioxide_neutral-12: #202020;
+
+	--trioxide_neutral-a1: #00000003;
+	--trioxide_neutral-a2: #00000006;
+	--trioxide_neutral-a3: #0000000f;
+	--trioxide_neutral-a4: #00000017;
+	--trioxide_neutral-a5: #0000001f;
+	--trioxide_neutral-a6: #00000026;
+	--trioxide_neutral-a7: #00000031;
+	--trioxide_neutral-a8: #00000044;
+	--trioxide_neutral-a9: #00000072;
+	--trioxide_neutral-a10: #0000007c;
+	--trioxide_neutral-a11: #0000009b;
+	--trioxide_neutral-a12: #000000df;
+
+	--trioxide_highlight-1: #fbfdff;
+	--trioxide_highlight-2: #f4faff;
+	--trioxide_highlight-3: #e6f4fe;
+	--trioxide_highlight-4: #d5efff;
+	--trioxide_highlight-5: #c2e5ff;
+	--trioxide_highlight-6: #acd8fc;
+	--trioxide_highlight-7: #8ec8f6;
+	--trioxide_highlight-8: #5eb1ef;
+	--trioxide_highlight-9: #0090ff;
+	--trioxide_highlight-10: #0588f0;
+	--trioxide_highlight-11: #0d74ce;
+	--trioxide_highlight-12: #113264;
+
+	--trioxide_highlight-a1: #0080ff04;
+	--trioxide_highlight-a2: #008cff0b;
+	--trioxide_highlight-a3: #008ff519;
+	--trioxide_highlight-a4: #009eff2a;
+	--trioxide_highlight-a5: #0093ff3d;
+	--trioxide_highlight-a6: #0088f653;
+	--trioxide_highlight-a7: #0083eb71;
+	--trioxide_highlight-a8: #0084e6a1;
+	--trioxide_highlight-a9: #0090ff;
+	--trioxide_highlight-a10: #0086f0fa;
+	--trioxide_highlight-a11: #006dcbf2;
+	--trioxide_highlight-a12: #002359ee;
+}
+
+.trioxide_dark {
+	--trioxide_neutral-1: #111111;
+	--trioxide_neutral-2: #191919;
+	--trioxide_neutral-3: #222222;
+	--trioxide_neutral-4: #2a2a2a;
+	--trioxide_neutral-5: #313131;
+	--trioxide_neutral-6: #3a3a3a;
+	--trioxide_neutral-7: #484848;
+	--trioxide_neutral-8: #606060;
+	--trioxide_neutral-9: #6e6e6e;
+	--trioxide_neutral-10: #7b7b7b;
+	--trioxide_neutral-11: #b4b4b4;
+	--trioxide_neutral-12: #eeeeee;
+
+	--trioxide_neutral-a1: #00000000;
+	--trioxide_neutral-a2: #ffffff09;
+	--trioxide_neutral-a3: #ffffff12;
+	--trioxide_neutral-a4: #ffffff1b;
+	--trioxide_neutral-a5: #ffffff22;
+	--trioxide_neutral-a6: #ffffff2c;
+	--trioxide_neutral-a7: #ffffff3b;
+	--trioxide_neutral-a8: #ffffff55;
+	--trioxide_neutral-a9: #ffffff64;
+	--trioxide_neutral-a10: #ffffff72;
+	--trioxide_neutral-a11: #ffffffaf;
+	--trioxide_neutral-a12: #ffffffed;
+
+	--trioxide_highlight-1: #0d1520;
+	--trioxide_highlight-2: #111927;
+	--trioxide_highlight-3: #0d2847;
+	--trioxide_highlight-4: #003362;
+	--trioxide_highlight-5: #004074;
+	--trioxide_highlight-6: #104d87;
+	--trioxide_highlight-7: #205d9e;
+	--trioxide_highlight-8: #2870bd;
+	--trioxide_highlight-9: #0090ff;
+	--trioxide_highlight-10: #3b9eff;
+	--trioxide_highlight-11: #70b8ff;
+	--trioxide_highlight-12: #c2e6ff;
+
+	--trioxide_highlight-a1: #004df211;
+	--trioxide_highlight-a2: #1166fb18;
+	--trioxide_highlight-a3: #0077ff3a;
+	--trioxide_highlight-a4: #0075ff57;
+	--trioxide_highlight-a5: #0081fd6b;
+	--trioxide_highlight-a6: #0f89fd7f;
+	--trioxide_highlight-a7: #2a91fe98;
+	--trioxide_highlight-a8: #3094feb9;
+	--trioxide_highlight-a9: #0090ff;
+	--trioxide_highlight-a10: #3b9eff;
+	--trioxide_highlight-a11: #70b8ff;
+	--trioxide_highlight-a12: #c2e6ff;
+
+}

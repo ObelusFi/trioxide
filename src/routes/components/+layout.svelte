@@ -1,0 +1,146 @@
+<script lang="ts">
+	import '$lib/index.css';
+	import { untrack } from 'svelte';
+	import { page } from '$app/state';
+	import Logo from '../../components/Logo.svelte';
+
+	let { children, data } = $props();
+	let content: HTMLElement = $state(null!);
+	let observer: IntersectionObserver;
+	let links: {
+		[k: string]: {
+			title: string;
+			link: string;
+			active: boolean;
+			rank: number;
+		};
+	} = $state({});
+
+	const capitalize = (e: string) => {
+		return e
+			.split('-')
+			.map((e) => `${e[0].toUpperCase()}${e.slice(1)}`)
+			.join(' ');
+	};
+
+	const startTracking = () => {
+		links = {};
+		const observe = [...content.querySelectorAll('.heading')];
+		observer = new IntersectionObserver(
+			(entries) => {
+				entries.forEach((entry) => {
+					const id = entry.target.getAttribute('aria-labelledby')!;
+					links[id].active = entry.isIntersecting;
+				});
+			},
+			{
+				rootMargin: '-50% 0% -50% 0%'
+			}
+		);
+		observe.forEach((e) => {
+			const id = e.getAttribute('aria-labelledby')!;
+			const rank = +e.getAttribute('data-heading-rank')! - 1;
+			let el = e.querySelector(`#${id}`)!;
+			links[id] = {
+				title: el.textContent,
+				link: el.id,
+				active: false,
+				rank
+			};
+			observer.observe(e);
+		});
+	};
+
+	let [prev, next] = $derived.by(() => {
+		const idx = data.routes.map((e) => `/components/${e}`).indexOf(page.route.id!);
+		let res: [string | undefined, string | undefined] = [undefined, undefined];
+		if (idx > 0) {
+			res[0] = data.routes[idx - 1];
+		}
+		if (idx < data.routes.length + 1) {
+			res[1] = data.routes[idx + 1];
+		}
+		return res;
+	});
+
+	$effect(() => {
+		page.route.id;
+		untrack(() => {
+			setTimeout(startTracking, 0);
+			return () => {
+				observer.disconnect();
+			};
+		});
+	});
+</script>
+
+<div class="flex flex-col">
+	<nav class="sticky top-0 z-50 mb-2 bg-(--trioxide_neutral-1) px-12 py-6">
+		<Logo></Logo>
+	</nav>
+	<div class=" grid grid-cols-[200px_1fr_200px] px-12 pt-12">
+		<aside class="sticky top-20 flex flex-col self-start">
+			<span class="font-semibold">Compnents</span>
+			<nav class=" mt-2 flex flex-col gap-1">
+				{#each data.routes as r}
+					{@const current = page.route.id}
+					{@const href = `/components/${r}`}
+					{@const name = capitalize(r)}
+					<a
+						{href}
+						class="capitalize hover:text-(--trioxide_highlight-11) {current == href
+							? 'text-(--trioxide_highlight-11)'
+							: 'text-(--trioxide_neutral-11)'}">{name}</a
+					>
+				{/each}
+			</nav>
+		</aside>
+		<div class="flex w-full flex-col">
+			<article class=" m-auto prose w-full max-w-[760px] prose-trioxide" bind:this={content}>
+				{@render children()}
+			</article>
+			<nav class=" m-auto flex w-full max-w-[760px] gap-4">
+				{#if prev}
+					<a
+						href="/components/{prev}"
+						class="me-auto flex w-1/2 flex-col items-start gap-1 rounded-md border border-(--trioxide_neutral-6) p-4 hover:border-(--trioxide_highlight-11)"
+					>
+						<span class=" text-xs text-(--trioxide_neutral-9)">Previous page</span>
+						<span class=" text-(--trioxide_highlight-11)">{capitalize(prev)}</span>
+					</a>
+				{/if}
+				{#if next}
+					<a
+						href="/components/{next}"
+						class="ms-auto flex w-1/2 flex-col items-end gap-1 rounded-md border border-(--trioxide_neutral-6) p-4 hover:border-(--trioxide_highlight-11)"
+					>
+						<span class=" text-xs text-(--trioxide_neutral-9)">Next page</span>
+						<span class=" text-(--trioxide_highlight-11)">{capitalize(next)}</span>
+					</a>
+				{/if}
+			</nav>
+		</div>
+		<aside class="sticky top-20 flex flex-col self-start text-sm">
+			<span class="mb-4 flex gap-1 text-(--trioxide_neutral-11)">
+				<i class="ri-menu-2-line"></i>
+				On this page
+			</span>
+			{#each Object.values(links) as { active, link, title, rank }}
+				<a
+					href="#{link}"
+					class="ml-[calc(var(--rank)*var(--spacing)*2)] px-2 py-1 text-(--trioxide_neutral-11) hover:text-(--trioxide_neutral-12) {active
+						? 'text-(--trioxide_neutral-12)'
+						: ''}"
+					class:text-(--trioxide_neutral-12)={active}
+					style:--rank={rank}>{title}</a
+				>
+			{/each}
+		</aside>
+	</div>
+</div>
+
+<style lang="postcss">
+	:global(:target) {
+		scroll-margin-top: 100px;
+	}
+</style>

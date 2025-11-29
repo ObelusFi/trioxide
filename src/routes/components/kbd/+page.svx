@@ -1,0 +1,94 @@
+<script lang="ts">
+	import Kbd, { type Platform } from '$lib/Kbd.svelte';
+
+	let platform: Platform = $state('auto');
+	const setPlatform = (p: Platform) => () => (platform = p);
+</script>
+
+# Kbd
+
+Render keyboard and mouse shortcuts with platform-aware glyphs, consistent sizing, and optional per-key props. Icons switch between ⌘/Ctrl, Option/Alt, and arrow chevrons depending on the selected platform (or the user's OS when set to `auto`).
+
+<div class="rounded-sm border border-(--trioxide_neutral-7) p-4 text-sm">
+	<div class="grid gap-2 sm:grid-cols-2">
+		<div class="flex items-center justify-between gap-2">
+			Copy
+			<Kbd {platform} keys={['Cmd', 'C']} />
+		</div>
+		<div class="flex items-center justify-between gap-2">
+			Search
+			<Kbd {platform} keys={['Cmd', 'F']} />
+		</div>
+		<div class="flex items-center justify-between gap-2">
+			Run
+			<Kbd
+				{platform}
+				keys={[
+					{ key: 'Ctrl', props: { title: 'Control' } },
+					{ key: 'Enter', props: { 'aria-label': 'Enter' } }
+				]}
+			/>
+		</div>
+		<div class="flex items-center justify-between gap-2">
+			Navigate
+			<Kbd {platform} keys={['Shift', 'Tab']} />
+		</div>
+	</div>
+	<div class="mt-3 flex flex-wrap items-center gap-2">
+		Platform:
+		<div class="button_group">
+			{#each ['auto', 'mac', 'pc'] as Platform[] as p}
+				<button class:selected={platform == p} onclick={setPlatform(p)}>{p}</button>
+			{/each}
+		</div>
+	</div>
+</div>
+
+---
+
+## Usage
+
+Pass an ordered `keys` array to render chorded shortcuts. The component auto-detects macOS/Windows symbols when `platform="auto"`.
+
+```svelte
+<script lang="ts">
+	import { Kbd, type Platform } from '@obelus/trioxide';
+	import '@obelus/trioxide/index.css'; // default light/dark tokens
+
+	let platform: Platform = $state('auto');
+</script>
+
+Save: <Kbd {platform} keys={['Cmd', 'S']} />
+Run tests: <Kbd {platform} keys={[{ key: 'Ctrl' }, 'Enter']} />
+```
+
+- `keys`: array of strings or `{ key, props }`. Known icon keys include `Cmd`, `Ctrl`, `Alt`, `Shift`, `Enter`, `Delete`, `Esc`, `Tab`, `Space`, arrow directions, and `MouseLeft|Right|Middle`.
+- `platform`: `'auto' | 'mac' | 'pc'` — controls whether ⌘/Ctrl and Option/Alt glyphs are swapped.
+- `props`: HTML attributes applied to the outer `<samp>` wrapper.
+
+---
+
+## Customization
+
+Default styling relies on the theme tokens from `@obelus/trioxide/index.css`. You can override the classes while keeping the structure:
+
+```svelte
+<Kbd keys={['Ctrl', 'Shift', 'P']} props={{ class: 'trioxide_kbd-default gap-1.5' }} />
+```
+
+```css
+.trioxide_kbd-default {
+	gap: var(--spacing);
+}
+
+.trioxide_kbd-key-default {
+	background: var(--trioxide_neutral-2);
+	border-radius: var(--radius-sm);
+	border: 1px solid var(--trioxide_neutral-6);
+	color: var(--trioxide_neutral-11);
+	padding-inline: calc(var(--spacing) * 1.25);
+}
+```
+
+- Override `props` on individual keys in the `keys` array to add tooltips, aria labels, or custom classes.
+- Swap in your own class names to fully restyle the wrapper (`.trioxide_kbd`) and keys (`.trioxide_kbd-key`), or feed different design tokens for light/dark themes.

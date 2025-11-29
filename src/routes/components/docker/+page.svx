@@ -1,0 +1,257 @@
+<script lang="ts">
+	import Docker, {type DockApi, type Panel } from '$lib/Docker.svelte';
+	import Kbd from '$lib/Kbd.svelte'
+
+	let layout: Panel = $state({
+		dir: 'w',
+		s: 100,
+		children: [
+			{
+				dir: 'w',
+				s: 70,
+				component: 'A'
+			},
+			{
+				dir: 'h',
+				s: 30,
+				children: [
+					{ dir: 'w', s: 50, component: 'B' },
+					{ dir: 'w', s: 50, component: 'C' }
+				]
+			}
+		]
+	});
+
+	let api = {} as DockApi;
+</script>
+
+# Docker
+
+A dock-style layout manager that lets you split, move, and resize panels with both mouse and keyboard controls. Ships with a default theme that follows Radix scale naming, but every surface can be restyled via props or your own CSS variables.
+
+<div class="h-[50dvh] w-full">
+	{#snippet A()}
+		A
+	{/snippet}
+	{#snippet B()}
+		B
+	{/snippet}
+	{#snippet C()}
+		C
+	{/snippet}
+	<Docker components={{ A, B, C }} bind:layout {api} min-size={20}></Docker>
+</div>
+
+<p class="mt-2 text-sm text-(--trioxide_neutral-11)">
+	Drag from a corner to split; drag onto another pane to move; use the handles or arrow keys to resize; press <Kbd keys={["Esc"]}/> to cancel an in-progress split.
+</p>
+
+---
+
+## Usage
+
+Start by defining a `Panel` tree and mapping the names you use in that tree to Svelte snippets or components.
+
+```svelte
+<script lang="ts">
+	import { Docker, type DockApi, type Panel } from '@obelus/trioxide';
+	import '@obelus/trioxide/index.css'; // default light/dark tokens (feel free to rename to default_themes.css)
+
+	let layout: Panel = $state({
+		dir: 'w',
+		s: 100,
+		children: [
+			{ dir: 'w', s: 70, component: 'Primary' },
+			{
+				dir: 'h',
+				s: 30,
+				children: [
+					{ dir: 'w', s: 50, component: 'Logs' },
+					{ dir: 'w', s: 50, component: 'Tests' }
+				]
+			}
+		]
+	});
+
+	let api = {} as DockApi;
+</script>
+
+{#snippet Primary()}Primary{/snippet}
+{#snippet Logs()}Logs{/snippet}
+{#snippet Tests()}Tests{/snippet}
+
+<Docker components={{ Primary, Logs, Tests }} bind:layout {api} min-size={20} panel-gap="0.75rem" />
+```
+
+Everything about the chrome (containers, hot corners, resizers, overlays) can be overridden through props and custom classes.
+
+---
+
+## Layout model
+
+`Panel` nodes describe the dock layout:
+
+- `dir`: `'w'` places children side by side; `'h'` stacks them vertically.
+- `s`: relative size for this node within its siblings. Values are normalized to percentages internally.
+- `children`: optional array of nested `Panel` nodes. If omitted, the node is treated as a leaf.
+- `component`: optional key that maps to `components[...]`. If omitted, `EmptyView` is shown.
+
+Docker mutates the `layout` object as the user splits or resizes, so keep it in a `$state` store (or bind it) if you want to persist updates.
+
+---
+
+## Props
+
+- `components` (required): record of snippets/components referenced by `component` keys in the layout.
+- `layout` / `bind:layout`: the current `Panel` tree. Mutated in place as panels split, move, or close.
+- `min-size` (optional): smallest width/height (px) a pane can shrink to before it is closed.
+- `panel-gap` (optional): CSS length used for spacing between panes (default `calc(var(--spacing) * 0.5)`).
+- `api` (optional): `DockApi` object that is populated on mount with helper methods.
+- `EmptyView` / `HotcornerContent`: snippets to override empty panes or the content of the hot corners.
+- `OverlayMoveTargetContent`, `OverlayMoveRestContent`, `OverlaySplitTargetContent`, `OverlaySplitRestContent`: snippets rendered inside the overlay halves while dragging.
+- `containerProps`, `panelProps`, `hotcornerProps`, `resizerProps`, `overlayProps`, `overlayPanelProps`: functions that return HTML attributes so you can override classes, aria labels, or styles for each piece of the UI.
+
+---
+
+## Quick customization
+
+If you want to keep the default structure and only change colors, import the default CSS (rename it to `default_themes.css` if you prefer):
+
+```css
+@import '@obelus/trioxide/index.css';
+```
+
+or in your JS/TS entry:
+
+```js
+import '@obelus/trioxide/index.css';
+```
+
+Then provide the theme variables (names follow the [Radix scale convention](https://www.radix-ui.com/colors/docs/palette-composition/understanding-the-scale)):
+
+```css
+:root {
+	/* Neutral scale */
+	--trioxide_neutral-1: var(--gray-1);
+	--trioxide_neutral-2: var(--gray-2);
+	/* ... */
+	--trioxide_neutral-12: var(--gray-12);
+
+	/* Neutral alpha scale */
+	--trioxide_neutral-a1: var(--gray-a1);
+	--trioxide_neutral-a2: var(--gray-a2);
+	/* ... */
+	--trioxide_neutral-a12: var(--gray-a12);
+
+	/* Highlight scale */
+	--trioxide_highlight-1: var(--blue-1);
+	--trioxide_highlight-2: var(--blue-2);
+	/* ... */
+	--trioxide_highlight-12: var(--blue-12);
+
+	/* Highlight alpha scale */
+	--trioxide_highlight-a1: var(--blue-a1);
+	--trioxide_highlight-a2: var(--blue-a2);
+	/* ... */
+	--trioxide_highlight-a12: var(--blue-a12);
+}
+```
+
+If you are using the default styles you can also override the default classes themselves:
+
+- `.trioxide_ctr-default` is applied to the container
+- `.trioxide_panel-leaf-default` is applied to leaf panels
+- `.trioxide_resizer-default` is applied to resizers
+- `.trioxide_hotcorner-default` is applied to split anchors
+- `.trioxide_overlay-default` and `.trioxide_overlay-panel-default` are applied to the drag overlay shell/panels
+- `.trioxide_panel-spliting-default`, `.trioxide_panel-is-move-start-default`, `.trioxide_panel-is-move-end-default` decorate panels during split/move gestures
+
+> **Note:** Providing a class through any of the props replaces the default class. If you still want the default applied, include it in your prop value, for example:
+
+```svelte
+<Docker
+	components={{ Primary, Logs, Tests }}
+	bind:layout
+	containerProps={{
+		class: 'trioxide_ctr-default rounded-xl border border-slate-200 bg-white shadow-sm'
+	}}
+/>
+```
+
+---
+
+## Advanced customization
+
+- Custom chrome & aria labels:
+
+```svelte
+<Docker
+	components={{ Primary, Logs, Tests }}
+	bind:layout
+	min-size={24}
+	panel-gap="0.5rem"
+	containerProps={{ class: 'rounded-xl border border-slate-200 bg-white shadow-sm' }}
+	panelProps={({ isLeaf }) => ({
+		class: isLeaf ? 'bg-slate-50 text-slate-800' : '',
+		'aria-label': isLeaf ? 'Content pane' : 'Group'
+	})}
+	hotcornerProps={(panel, corner) => ({
+		class: 'bg-blue-50 text-blue-700 hover:bg-blue-100',
+		'aria-label': `Split ${panel.component ?? 'pane'} at ${corner}`
+	})}
+	resizerProps={(_, dir) => ({
+		class: `bg-blue-200/60 ${dir === 'w' ? 'w-1' : 'h-1'}`,
+		'aria-label': 'Resize panel'
+	})}
+/>
+```
+
+- Custom overlay affordances:
+
+```svelte
+{#snippet SplitHere()}Split{/snippet}
+{#snippet DropHere()}Move{/snippet}
+
+<Docker
+	components={{ Primary, Logs, Tests }}
+	bind:layout
+	OverlaySplitTargetContent={SplitHere}
+	OverlayMoveTargetContent={DropHere}
+	overlayPanelProps={(dir, move, isTarget) => ({
+		class: `${isTarget ? 'bg-amber-100 text-amber-900' : 'bg-amber-50/80'} ${
+			dir === 'w' ? 'border-l-2 border-amber-400' : 'border-t-2 border-amber-400'
+		}`
+	})}
+/>
+```
+
+---
+
+## Programmatic control
+
+`DockApi` exposes imperative helpers once the component mounts:
+
+```ts
+type DockApi = {
+	splitPanel: (
+		panel: Panel,
+		dir?: 'w' | 'h',
+		size?: number,
+		targetIsFirst?: boolean
+	) => void;
+	closePanel: (panel: Panel) => void;
+};
+```
+
+Example: split the first child vertically and focus the new area.
+
+```svelte
+<button onclick={() => api.splitPanel(layout.children?.[0]!, 'h', 60)}>
+	Split first pane
+</button>
+<button onclick={() => api.closePanel(layout.children?.[0]!)}>
+	Close first pane
+</button>
+```
+
+---

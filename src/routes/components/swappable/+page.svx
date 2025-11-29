@@ -1,0 +1,105 @@
+<script lang="ts">
+	import Swappable from '$lib/Swappable.svelte';
+	let items = $state([
+		{  title: 'Alpha' },
+		{  title: 'Bravo' },
+		{  title: 'Charlie' }
+	]);
+</script>
+
+# Swappable
+
+Drag-and-drop list reordering with a tiny contract: provide an `items` array and a render snippet, then opt into hold-to-drag or instant dragging. No built-in styles are imposed, so you control the handle, focus states, and motion.
+
+<div class=" flex flex-col gap-1">
+	<Swappable bind:items drag-on-hold={10}>
+		{#snippet Item(p, bindings)}
+			{@const { element, handle, isDragging } = bindings}
+			<div
+				{...element}
+				class=" flex rounded-sm border p-1 {isDragging
+					? 'z-10 border-(--trioxide_highlight-7) bg-(--trioxide_highlight-2)'
+					: 'border-(--trioxide_neutral-7) bg-(--trioxide_neutral-2)'}"
+			>
+				<button {...handle} class={isDragging ? 'cursor-grabbing' : 'cursor-grab'}>
+					<i class="ri-draggable"></i>
+				</button>
+				<span>{p.title}</span>
+			</div>
+		{/snippet}
+	</Swappable>
+</div>
+
+<p class="mt-2 text-sm text-(--trioxide_neutral-11)">
+	Press and hold the handle to start dragging. Drag up or down to reorder;
+</p>
+
+---
+
+## Usage
+
+```svelte
+<script lang="ts">
+	import { Swappable } from '@obelus/trioxide';
+
+	type Item = { id: string; title: string };
+
+	let items: Item[] = $state([{ title: 'Alpha' }, { title: 'Bravo' }, { title: 'Charlie' }]);
+</script>
+
+<Swappable
+	bind:items
+	drag-on-hold={120}
+	threshold={18}
+	onSwap={(from, to) => console.log(from, to)}
+>
+	{#snippet Item(item, bindings)}
+		{@const { element, handle, isDragging } = bindings}
+
+		<article {...element} class={`${isDragging ? 'z-10' : ''}`}>
+			<button
+				{...handle}
+				aria-label={`Reorder ${item.title}`}
+				class={isDragging ? 'cursor-grabbing' : 'cursor-grab'}
+			>
+				<i class="ri-draggable" />
+			</button>
+			<span class="ml-2">{item.title}</span>
+		</article>
+	{/snippet}
+</Swappable>
+```
+
+`items` is mutated in place as the user swaps rows, so keep it in a `$state` store if you want to persist order changes.
+
+---
+
+## Props
+
+- `items`: array being reordered. Items are keyed by identity.
+- `Item`: snippet with signature `(props, bindings)`. Render your row and spread the provided bindings.
+- `onSwap(from, to?)`: optional callback fired after two items exchange places (indices are zero-based).
+- `threshold` (default `20`): vertical pixels the pointer must move before a swap occurs.
+- `drag-on-hold` (default `0`): delay in ms before a drag starts after pressing the handle; set >0 to avoid accidental drags on click.
+
+---
+
+## Item bindings
+
+`bindings` contains the affordances needed for drag interactions:
+
+- `element`: spread onto the row container; applies inline `translate` while dragging and registers cleanup.
+- `handle`: spread onto the drag handle (or the entire row) to start the gesture on mouse/touch down.
+- `isDragging`: boolean you can use to change cursor, elevation, or opacity.
+- `dy`: current pixel offset (useful if you want to animate shadows or scale).
+
+---
+
+## Behavior
+
+- Drag vertically to swap neighboring items; the swap happens once you cross `threshold` pixels.
+- Works with mouse and touch; listeners are attached to `document.body` so the drag continues outside the item bounds.
+- The component is unopinionated about layout—flex rows, grid items, or cards all work as long as you attach `element` and `handle`.
+- Mutates the original `items` array; call `onSwap` to persist changes or trigger side effects (e.g., saving to a server).
+
+---

@@ -1,0 +1,208 @@
+<script lang="ts">
+	import ContextMenu, { useContextMenu, type Menu } from '$lib/ContextMenu.svelte';
+	import Kbd from '$lib/Kbd.svelte'
+
+	let action = $state('None');
+
+	const menu: Menu = {
+		children: [
+			{ type: 'label', content: 'Context actions' },
+			{
+				type: 'button',
+				content: 'Rename',
+				action: () => (action = 'Rename')
+			},
+			{
+				type: 'button',
+				content: 'Duplicate',
+				action: () => (action = 'Duplicate')
+			},
+			{ type: 'separator' },
+			{
+				type: 'submenu',
+				content: 'Share',
+				menu: {
+					children: [
+						{
+							type: 'button',
+							content: 'Copy link',
+							action: () => (action = 'Copy link')
+						},
+						{
+							type: 'button',
+							content: 'Invite collaborators',
+							props: { disabled: true },
+							action: () => (action = 'Invite collaborators')
+						}
+					]
+				}
+			},
+			{
+				type: 'button',
+				content: 'Delete',
+				props: { class: 'text-red-500 trioxide_action-default hover:bg-red-50' },
+				action: () => (action = 'Delete')
+			}
+		]
+	};
+
+</script>
+
+# Context Menu
+
+A global, accessible context menu system with nested submenus, keyboard and wheel navigation, and fully overridable styling.
+
+<div
+	{...useContextMenu(menu)}
+	class="h-[40dvh] w-full border border-(--trioxide_neutral-7) flex items-center justify-center rounded-sm text-sm"
+>
+	Right click here · Last action: {action}
+</div>
+
+<p class="mt-2 text-sm text-(--trioxide_neutral-11)">
+	Open the menu anywhere this attachment is applied. Use the arrow keys, mouse wheel, or hover to move
+	through items; press <Kbd keys="{['Enter']}"></Kbd> to trigger or open a submenu; <Kbd keys="{['Esc']}"></Kbd> closes everything.
+</p>
+
+---
+
+## Usage
+
+Place a single `ContextMenu` component near the root of your app, then attach the menu definition to any element with `useContextMenu`.
+
+```svelte
+<script lang="ts">
+	import { ContextMenu, useContextMenu, type Menu } from '@obelus/trioxide';
+	import '@obelus/trioxide/index.css'; // default light/dark tokens (feel free to rename to default_themes.css)
+
+	let lastAction = $state('None');
+
+	const fileMenu = {
+		children: [
+			{ type: 'label', content: 'File' },
+			{ type: 'button', content: 'Rename', action: () => (lastAction = 'Rename') },
+			{ type: 'separator' },
+			{
+				type: 'submenu',
+				content: 'Share',
+				menu: {
+					children: [
+						{ type: 'button', content: 'Copy link', action: () => (lastAction = 'Copy link') },
+						{ type: 'button', content: 'Export', action: () => (lastAction = 'Export') }
+					]
+				}
+			},
+			{ type: 'button', content: 'Delete', action: () => (lastAction = 'Delete') }
+		]
+	} satisfies Menu;
+
+	const attach = useContextMenu(fileMenu);
+</script>
+
+<ContextMenu />
+
+<div
+	{...attach}
+	class="flex h-48 items-center justify-center rounded-md border border-(--trioxide_neutral-7)"
+>
+	Right click me ({lastAction})
+</div>
+```
+
+You can reuse the same `Menu` object and `useContextMenu(menu)` attachment on multiple elements to show the menu in different places.
+
+---
+
+## Menu model
+
+`Menu` objects describe each layer of the context menu:
+
+- `children`: array of menu items.
+  - `button`: clickable row with `content`, `action(item)`, and optional `props` for the `<button>` (classes, aria, `disabled`, etc.).
+  - `submenu`: nested menu with its own `menu` and optional `props` for the trigger button.
+  - `label`: static text row; useful for grouping.
+  - `separator`: horizontal divider.
+- Disabled items (`props.disabled`) stay visible but are skipped by keyboard/wheel navigation.
+
+---
+
+## Behavior
+
+- Attach `useContextMenu(menu)` anywhere you want a menu; the menu appears at the cursor and repositions to stay in view.
+- Navigate with hover, Arrow keys, or mouse wheel. <Kbd keys="{['Enter']}"></Kbd> activates the focused item or opens a submenu; <Kbd keys="{['Esc']}"></Kbd> closes all menus.
+- Submenus open on hover/focus and avoid clipping; disabled items stay visible but are skipped by keyboard/wheel navigation.
+- Actions fire immediately and close the stack; clicking outside also closes everything.
+
+---
+
+## Quick customization
+
+```css
+@import '@obelus/trioxide/index.css';
+
+:root {
+	--trioxide_neutral-1: var(--gray-1);
+	/* ... */
+	--trioxide_neutral-12: var(--gray-12);
+	--trioxide_neutral-a1: var(--gray-a1);
+	/* ... */
+	--trioxide_neutral-a12: var(--gray-a12);
+	--trioxide_highlight-1: var(--blue-1);
+	/* ... */
+	--trioxide_highlight-12: var(--blue-12);
+	--trioxide_highlight-a1: var(--blue-a1);
+	/* ... */
+	--trioxide_highlight-a12: var(--blue-a12);
+}
+
+.trioxide_menu_default {
+	/* override container */
+}
+.trioxide_action-default {
+	/* override buttons */
+}
+.trioxide_label-default {
+	/* override label text */
+}
+.trioxide_separator {
+	/* override separators */
+}
+```
+
+## Advanced customization
+
+- Every item type (`menu`, `button`, `submenu`, `label`) accepts `props` so you can swap in your own classes and add attributes like `aria-label`, `title`, or `data-*` alongside `disabled`.
+- `content` values (and any `content` on buttons/submenus) can be plain strings or Svelte snippets, letting you render icons, shortcuts, or dynamic content inline.
+
+```svelte
+<script lang="ts">
+	const menu = {
+		props: { class: 'trioxide_menu_default shadow-lg border border-(--trioxide_neutral-7)' },
+		children: [
+			{
+				type: 'label',
+				content: 'Danger zone',
+				props: {
+					class: 'trioxide_label-default uppercase tracking-wide text-(--trioxide_highlight-9)',
+					'aria-label': 'Danger section'
+				}
+			},
+			{
+				type: 'button',
+				content: Delete,
+				props: {
+					class: 'trioxide_action-default text-red-600 hover:bg-red-50',
+					'aria-label': 'Delete item'
+				},
+				action: () => console.log('Delete')
+			}
+		]
+	};
+</script>
+
+{#snippet Delete()}
+	Delete <kbd class="text-xs opacity-70">⌘⌫</kbd>
+{/snippet}
+```
+
+---
