@@ -1,10 +1,10 @@
 {
 	"name": "@obelusfi/trioxide",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/ObelusFi/trioxide"
+		"url": "git+https://github.com/ObelusFi/trioxide.git"
 	},
 	"scripts": {
 		"dev": "vite dev",

@@ -82,14 +82,11 @@ const changelogEntry = `## ${tag} - ${date}\n${commitBullets}\n`;
 const nextChangelog = `${existingChangelog.trim()}\n\n${changelogEntry}\n`;
 await writeFile(changelogPath, nextChangelog);
 
-const filesToAdd = ['package.json', changelogPath];
-if (await fileExists('bun.lock')) filesToAdd.push('bun.lock');
-
-await $`git add ${filesToAdd.join(' ')}`;
+await $`git add .`;
 await $`git commit -m ${`chore: release ${tag}`}`;
 await $`git tag ${tag}`;
 await $`git push origin ${branch} --follow-tags`;
-await $`bun publish --access public`;
+await $`npm publish --access public`;
 
 const releaseNotes = `Changes in ${tag} (${date})\n\n${commitBullets}\n`;
 const tmpNotes = join(tmpdir(), `trioxide-release-${Date.now()}.md`);
