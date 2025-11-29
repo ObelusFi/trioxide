@@ -37,7 +37,10 @@ const config = {
 	kit: {
 		adapter: adapter({
 			pages: 'docs'
-		})
+		}),
+		paths: {
+			base: '/trioxide'
+		}
 	},
 	extensions: ['.svelte', '.svx']
 };
