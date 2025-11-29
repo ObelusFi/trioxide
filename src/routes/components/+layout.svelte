@@ -3,6 +3,7 @@
 	import { untrack } from 'svelte';
 	import { page } from '$app/state';
 	import Logo from '../../components/Logo.svelte';
+	import { resolve } from '$app/paths';
 
 	let { children, data } = $props();
 	let content: HTMLElement = $state(null!);
@@ -84,7 +85,7 @@
 			<nav class=" mt-2 flex flex-col gap-1">
 				{#each data.routes as r}
 					{@const current = page.route.id}
-					{@const href = `/components/${r}`}
+					{@const href = resolve(`/components/${r}` as any)}
 					{@const name = capitalize(r)}
 					<a
 						{href}
