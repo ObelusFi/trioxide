@@ -84,7 +84,7 @@
 			<span class="font-semibold">Compnents</span>
 			<nav class=" mt-2 flex flex-col gap-1">
 				{#each data.routes as r}
-					{@const current = page.route.id}
+					{@const current = resolve(page.route.id as any)}
 					{@const href = resolve(`/components/${r}` as any)}
 					{@const name = capitalize(r)}
 					<a
