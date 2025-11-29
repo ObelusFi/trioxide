@@ -103,7 +103,7 @@
 			<nav class=" m-auto flex w-full max-w-[760px] gap-4">
 				{#if prev}
 					<a
-						href="/components/{prev}"
+						href={resolve(`/components/${prev}` as any)}
 						class="me-auto flex w-1/2 flex-col items-start gap-1 rounded-md border border-(--trioxide_neutral-6) p-4 hover:border-(--trioxide_highlight-11)"
 					>
 						<span class=" text-xs text-(--trioxide_neutral-9)">Previous page</span>
@@ -112,7 +112,7 @@
 				{/if}
 				{#if next}
 					<a
-						href="/components/{next}"
+						href={resolve(`/components/${next}` as any)}
 						class="ms-auto flex w-1/2 flex-col items-end gap-1 rounded-md border border-(--trioxide_neutral-6) p-4 hover:border-(--trioxide_highlight-11)"
 					>
 						<span class=" text-xs text-(--trioxide_neutral-9)">Next page</span>
