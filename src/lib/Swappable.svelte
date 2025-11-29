@@ -36,7 +36,7 @@
 		let yLoc = 0;
 
 		let grabbedIdx = -1;
-		let timeout: number;
+		let timeout: ReturnType<typeof setTimeout>;
 
 		function onMouseMove(e: MouseEvent | TouchEvent) {
 			clearTimeout(timeout);
