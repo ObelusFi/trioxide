@@ -1,9 +1,10 @@
 <script lang="ts">
 	import '$lib/index.css';
-	import { untrack } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/state';
 	import Logo from '../../components/Logo.svelte';
 	import { resolve } from '$app/paths';
+	import { afterNavigate } from '$app/navigation';
 
 	let { children, data } = $props();
 	let content: HTMLElement = $state(null!);
@@ -66,14 +67,25 @@
 		return res;
 	});
 
+	onMount(() => {
+		setTimeout(() => startTracking());
+		return () => {
+			observer?.disconnect();
+		};
+	});
+
 	$effect(() => {
-		page.route.id;
-		untrack(() => {
-			setTimeout(startTracking, 0);
-			return () => {
-				observer.disconnect();
-			};
-		});
+		if (typeof document == 'undefined') return;
+		if (open) {
+			document.body.classList.add('no-scroll');
+		} else {
+			document.body.classList.remove('no-scroll');
+		}
+	});
+
+	afterNavigate(() => {
+		setTimeout(() => startTracking());
+		open = false;
 	});
 </script>
 
@@ -161,8 +173,10 @@
 				<i class="ri-close-large-line"></i>
 			</button>
 		</div>
-		<div>Components</div>
-		{@render Links()}
+		<span class="font-semibold">Compnents</span>
+		<div class="flex flex-col gap-1 ps-4">
+			{@render Links()}
+		</div>
 	</div>
 </nav>
 

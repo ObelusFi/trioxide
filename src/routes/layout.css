@@ -5,6 +5,9 @@
 body,
 html {
 	@apply relative bg-(--trioxide_neutral-1) text-(--trioxide_neutral-12);
+	&.no-scroll {
+		overflow: hidden;
+	}
 }
 
 @utility prose-trioxide {
