@@ -173,11 +173,10 @@
 		overlay.s = (overlay.dir === 'w' ? rx : ry) * 100;
 	};
 
-	const splitMove = (e: MouseEvent) => {
+	const splitMove = (x: number, y: number) => {
 		if (!splitTargetStart) return;
 
 		const rect = splitTargetStart.el!.getBoundingClientRect();
-		const [x, y] = [e.clientX, e.clientY];
 		const dx = Math.abs(x - lastPos[0]);
 		const dy = Math.abs(y - lastPos[1]);
 
@@ -209,10 +208,10 @@
 		overlay.move = false;
 	};
 
-	const resizeMove = (e: MouseEvent) => {
+	const resizeMove = (x: number, y: number) => {
 		if (!resizeTarget?.parentNode) return;
 		const parent = resizeTarget.parentNode;
-		const [dx, dy] = [lastPos[0] - e.clientX, lastPos[1] - e.clientY];
+		const [dx, dy] = [lastPos[0] - x, lastPos[1] - y];
 		const rect = parent.el!.getBoundingClientRect();
 		const spx = parent.dir === 'w' ? rect.width : rect.height;
 		let delta = 100 * ((parent.dir === 'w' ? dx : dy) / spx);
@@ -229,7 +228,7 @@
 			closePanel(parent.children![idx + 1]);
 			splitCancel();
 		}
-		lastPos = [e.clientX, e.clientY];
+		lastPos = [x, y];
 	};
 
 	const splittingStart = (node: PanelNode) => (e: MouseEvent) => {
@@ -238,10 +237,14 @@
 		lastPos = [e.clientX, e.clientY];
 	};
 
-	const resizeStart = (node: PanelNode) => (e: MouseEvent) => {
-		if (e.buttons != 1) return;
+	const resizeStart = (node: PanelNode) => (e: MouseEvent | TouchEvent) => {
+		if (e instanceof MouseEvent) {
+			if (e.buttons != 1) return;
+			lastPos = [e.clientX, e.clientY];
+		} else {
+			lastPos = [e.touches[0].clientX, e.touches[0].clientY];
+		}
 		resizeTarget = node;
-		lastPos = [e.clientX, e.clientY];
 	};
 
 	const keyboardResize = (node: PanelNode) => (e: KeyboardEvent) => {
@@ -384,9 +387,19 @@
 		}
 	});
 
-	const onmousemove = (e: MouseEvent) => {
-		splitMove(e);
-		resizeMove(e);
+	const onmousemove = (e: MouseEvent | TouchEvent) => {
+		if (!splitTargetStart && !resizeTarget?.parentNode) return;
+		let x, y;
+		if (e instanceof MouseEvent) {
+			x = e.clientX;
+			y = e.clientY;
+		} else {
+			e.preventDefault();
+			x = e.touches[0].clientX;
+			y = e.touches[0].clientY;
+		}
+		splitMove(x, y);
+		resizeMove(x, y);
 	};
 
 	const onmouseup = () => {
@@ -418,11 +431,36 @@
 		flatten(layout);
 	};
 
+	const onkeydown = (e: KeyboardEvent) => {
+		if (e.key === 'Escape') {
+			e.preventDefault();
+			setTimeout(() => {
+				(document.activeElement as HTMLElement)?.blur?.();
+			});
+			splitCancel();
+		}
+	};
+
 	onMount(() => {
 		dir = getComputedStyle(el).direction as 'ltr';
 		if (!api) return;
 		api.closePanel = closePanel;
 		api.splitPanel = splitPanel;
+		window.addEventListener('touchmove', onmousemove, { passive: false });
+		window.addEventListener('mousemove', onmousemove, { passive: false });
+		window.addEventListener('onmouseup', onmouseup);
+		window.addEventListener('touchend', onmouseup);
+		window.addEventListener('touchend', onmouseup);
+		window.addEventListener('keydown', onkeydown);
+
+		return () => {
+			window.removeEventListener('touchmove', onmousemove);
+			window.removeEventListener('mousemove', onmousemove);
+			window.removeEventListener('onmouseup', onmouseup);
+			window.removeEventListener('touchend', onmouseup);
+			window.removeEventListener('touchend', onmouseup);
+			window.removeEventListener('keydown', onkeydown);
+		};
 	});
 
 	const omit = <T extends Record<string, any> | undefined>(
@@ -438,20 +476,6 @@
 		return cp as T;
 	};
 </script>
-
-<svelte:window
-	{onmousemove}
-	{onmouseup}
-	onkeydown={(e) => {
-		if (e.key === 'Escape') {
-			e.preventDefault();
-			setTimeout(() => {
-				(document.activeElement as HTMLElement)?.blur?.();
-			});
-			splitCancel();
-		}
-	}}
-/>
 
 {#snippet HotCorners(node: PanelNode)}
 	{#each ['tl', 'tr', 'bl', 'br'] as const as pos}
@@ -513,6 +537,7 @@
 			class="trioxide_resizer {parent!.dir} {props?.class?.toString() ||
 				'trioxide_resizer-default'}"
 			onmousedown={resizeStart(node)}
+			ontouchstart={resizeStart(node)}
 			onkeydown={keyboardResize(node)}
 			{...omit(props, 'onmousedown', 'onkeydown', 'class')}
 		></button>
