@@ -4,6 +4,7 @@ import { access, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
+
 type Bump = 'patch' | 'minor' | 'major';
 const bump = process.argv[2] as Bump;
 const allowed: Bump[] = ['patch', 'minor', 'major'];
@@ -21,6 +22,7 @@ const fileExists = async (path: string) => {
 		return false;
 	}
 };
+
 
 const dirty = (await $`git status --porcelain`.text()).trim();
 if (dirty) {
@@ -74,18 +76,19 @@ const commitBullets = commitLines.map((msg) => `- ${msg}`).join('\n') || '- No c
 const tag = `v${pkg.version}`;
 const date = new Date().toISOString().slice(0, 10);
 const changelogPath = 'CHANGELOG.md';
-const changelogHeader = '# Changelog';
+const changelogHeader = '';
 const existingChangelog = (await fileExists(changelogPath))
 	? await Bun.file(changelogPath).text()
 	: `${changelogHeader}\n`;
-const changelogEntry = `## ${tag} - ${date}\n${commitBullets}\n`;
-const nextChangelog = `${existingChangelog.trim()}\n\n${changelogEntry}\n`;
+const changelogEntry = `## ${tag} - ${date}\n\n${commitBullets}\n`;
+const nextChangelog = `${changelogEntry}\n${existingChangelog.trim()}\n\n`;
 await writeFile(changelogPath, nextChangelog);
 
 await $`git add .`;
 await $`git commit -m ${`chore: release ${tag}`}`;
 await $`git tag ${tag}`;
 await $`git push --tag`;
+await $`npm login`;
 await $`npm publish --access public`;
 
 const releaseNotes = `Changes in ${tag} (${date})\n\n${commitBullets}\n`;

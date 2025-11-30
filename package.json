@@ -2,6 +2,7 @@
 	"name": "@obelusfi/trioxide",
 	"version": "0.2.1",
 	"license": "MIT",
+	"description": "Svelte 5 customizable componets, focused on non-trivial UI pieces that are tedious to reimplement.",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/ObelusFi/trioxide.git"

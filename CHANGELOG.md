@@ -1,13 +1,5 @@
-## v0.2.0 - 2025-11-29
-- fix: publish script
-- fix: typescript type for timout
-- chore: add publish script
-- chore: update package.json
-- chore: add licence
-- chore: update readme
-- chore: first
-
 ## v0.2.1 - 2025-11-30
+
 - chore: documentation - close menu on navigation - prevent prevent scroll when menu is open
 - chore: fix mobile version
 - fix: add touch events to docker
@@ -23,3 +15,12 @@
 - chore: Enhance README with centered logo and title
 - Add logo image to README
 
+## v0.2.0 - 2025-11-29
+
+- fix: publish script
+- fix: typescript type for timout
+- chore: add publish script
+- chore: update package.json
+- chore: add licence
+- chore: update readme
+- chore: first
