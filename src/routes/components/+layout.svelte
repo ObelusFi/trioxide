@@ -17,6 +17,8 @@
 		};
 	} = $state({});
 
+	let open = $state(false);
+
 	const capitalize = (e: string) => {
 		return e
 			.split('-')
@@ -75,28 +77,37 @@
 	});
 </script>
 
+{#snippet Links()}
+	{#each data.routes as r}
+		{@const current = resolve(page.route.id as any)}
+		{@const href = resolve(`/components/${r}` as any)}
+		{@const name = capitalize(r)}
+		<a
+			{href}
+			class="capitalize hover:text-(--trioxide_highlight-11) {current == href
+				? 'text-(--trioxide_highlight-11)'
+				: 'text-(--trioxide_neutral-11)'}">{name}</a
+		>
+	{/each}
+{/snippet}
+
 <div class="flex flex-col">
-	<nav class="sticky top-0 z-50 mb-2 bg-(--trioxide_neutral-1) px-12 py-6">
-		<Logo></Logo>
+	<nav
+		class="sticky top-0 z-50 mb-2 flex items-center justify-between bg-(--trioxide_neutral-1) px-4 py-6 lg:px-12"
+	>
+		<button class=" text-3xl lg:hidden" aria-label="menu" onclick={() => (open = true)}>
+			<i class="ri-menu-line"></i>
+		</button>
+		<a href={resolve('/')}><Logo></Logo></a>
 	</nav>
-	<div class=" grid grid-cols-[200px_1fr_200px] px-12 pt-12">
-		<aside class="sticky top-20 flex flex-col self-start">
+	<div class="grid grid-cols-1 px-4 pb-12 lg:grid-cols-[200px_1fr_200px] lg:px-12 lg:pt-12">
+		<aside class="sticky top-20 hidden flex-col self-start lg:flex">
 			<span class="font-semibold">Compnents</span>
 			<nav class=" mt-2 flex flex-col gap-1">
-				{#each data.routes as r}
-					{@const current = resolve(page.route.id as any)}
-					{@const href = resolve(`/components/${r}` as any)}
-					{@const name = capitalize(r)}
-					<a
-						{href}
-						class="capitalize hover:text-(--trioxide_highlight-11) {current == href
-							? 'text-(--trioxide_highlight-11)'
-							: 'text-(--trioxide_neutral-11)'}">{name}</a
-					>
-				{/each}
+				{@render Links()}
 			</nav>
 		</aside>
-		<div class="flex w-full flex-col">
+		<div class="flex w-full min-w-0 flex-col">
 			<article class=" m-auto prose w-full max-w-[760px] prose-trioxide" bind:this={content}>
 				{@render children()}
 			</article>
@@ -121,7 +132,7 @@
 				{/if}
 			</nav>
 		</div>
-		<aside class="sticky top-20 flex flex-col self-start text-sm">
+		<aside class="sticky top-20 hidden flex-col self-start text-sm lg:flex">
 			<span class="mb-4 flex gap-1 text-(--trioxide_neutral-11)">
 				<i class="ri-menu-2-line"></i>
 				On this page
@@ -140,7 +151,35 @@
 	</div>
 </div>
 
+<nav class="nav" class:open>
+	<div
+		class="flex h-full w-[calc(100%-20*var(--spacing))] flex-col gap-2 bg-(--trioxide_neutral-2) p-4"
+	>
+		<div class="mb-4 flex justify-between">
+			<Logo></Logo>
+			<button aria-label="close" onclick={() => (open = false)}>
+				<i class="ri-close-large-line"></i>
+			</button>
+		</div>
+		<div>Components</div>
+		{@render Links()}
+	</div>
+</nav>
+
 <style lang="postcss">
+	@reference "../layout.css";
+	.nav {
+		@apply invisible fixed top-0 right-0 bottom-0 left-0 z-50 bg-black/0 transition-all duration-200 lg:hidden;
+		div {
+			@apply -translate-x-full transition-all duration-200;
+		}
+		&.open {
+			@apply visible bg-black/60;
+			div {
+				@apply translate-x-0 transition-all duration-200;
+			}
+		}
+	}
 	:global(:target) {
 		scroll-margin-top: 100px;
 	}

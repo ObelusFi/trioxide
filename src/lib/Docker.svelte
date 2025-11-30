@@ -448,16 +448,14 @@
 		api.splitPanel = splitPanel;
 		window.addEventListener('touchmove', onmousemove, { passive: false });
 		window.addEventListener('mousemove', onmousemove, { passive: false });
-		window.addEventListener('onmouseup', onmouseup);
-		window.addEventListener('touchend', onmouseup);
+		window.addEventListener('mouseup', onmouseup);
 		window.addEventListener('touchend', onmouseup);
 		window.addEventListener('keydown', onkeydown);
 
 		return () => {
 			window.removeEventListener('touchmove', onmousemove);
 			window.removeEventListener('mousemove', onmousemove);
-			window.removeEventListener('onmouseup', onmouseup);
-			window.removeEventListener('touchend', onmouseup);
+			window.removeEventListener('mouseup', onmouseup);
 			window.removeEventListener('touchend', onmouseup);
 			window.removeEventListener('keydown', onkeydown);
 		};

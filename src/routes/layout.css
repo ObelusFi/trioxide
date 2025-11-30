@@ -4,7 +4,7 @@
 
 body,
 html {
-	@apply relative bg-(--trioxide_neutral-2) text-(--trioxide_neutral-12);
+	@apply relative bg-(--trioxide_neutral-1) text-(--trioxide_neutral-12);
 }
 
 @utility prose-trioxide {
