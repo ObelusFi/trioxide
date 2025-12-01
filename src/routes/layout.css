@@ -73,10 +73,17 @@ html {
 	content: none;
 }
 
+.button {
+	@apply inline-flex items-center justify-center rounded-md border border-(--trioxide_neutral-5) bg-(--trioxide_neutral-3) px-3 text-(--trioxide_neutral-11);
+	&:hover {
+		@apply bg-(--trioxide_neutral-5) text-(--trioxide_neutral-12);
+	}
+}
+
 .button_group {
 	@apply inline-flex rounded-md outline outline-(--trioxide_neutral-7);
 	button {
-		@apply flex items-center justify-center border-e border-(--trioxide_neutral-5) bg-(--trioxide_neutral-3) px-3 text-(--trioxide_neutral-11);
+		@apply inline-flex items-center justify-center border-e border-(--trioxide_neutral-5) bg-(--trioxide_neutral-3) px-3 text-(--trioxide_neutral-11);
 		&:first-of-type {
 			@apply rounded-l-md;
 		}

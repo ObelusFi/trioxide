@@ -82,7 +82,7 @@
 		</g>
 	</svg>
 
-	<a href={resolve('/components/context-menu')} class=" text-(--trioxide_highlight-11)">
+	<a href={resolve('/components/calendar')} class=" text-(--trioxide_highlight-11)">
 		Explore the components
 	</a>
 </section>

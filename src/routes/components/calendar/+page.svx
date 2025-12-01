@@ -1,0 +1,160 @@
+<script lang="ts">
+	import Calendar, { type CalendarApi } from '$lib/Calendar.svelte';
+	const today = {
+		'en-US': 'Today',
+		'fr-FR': "aujourd'hui",
+		'ko-KR': '오늘',
+		'ja-JP': '今日',
+		'ar-EG': 'اليوم'
+	};
+	let locale: keyof typeof today = $state('en-US');
+	const setPlatform = (l: keyof typeof today) => () => {
+		locale = l;
+	};
+	let api = $state({}) as CalendarApi;
+</script>
+
+# Calendar
+
+Locale-aware calendar primitive that gives you precomputed month/day metadata, weekend info, text direction, and focusable grid navigation so you can render any UI you want.
+
+<div>
+	<Calendar
+		{locale}
+		bind:api
+		onGridNavigationInlineStart={() => {
+			api.goToPrevMonth();
+		}}
+		onGridNavigationInlineEnd={() => {
+			api.goToNextMonth();
+		}}
+	>
+		{#snippet View({ activeDate, days, weekDaysNames, dir, useGridNavigation })}
+			<div class="mb-2 flex flex-col gap-0.5 lg:flex-row lg:justify-between" {dir}>
+				<div class=" text-2xl font-bold">
+					{api.format(activeDate!, { year: 'numeric', month: 'long' })}
+				</div>
+				<div class="flex items-center gap-1">
+					<button class="button text-sm" onclick={api.goToPrevMonth} aria-label="prev">
+						<i class="ri-arrow-left-s-line rtl:-scale-x-100"></i>
+					</button>
+					<button class="button text-sm" onclick={api.goToToday}>{today[locale]}</button>
+					<button class="button text-sm" onclick={api.goToNextMonth} aria-label="next">
+						<i class="ri-arrow-right-s-line rtl:-scale-x-100"></i>
+					</button>
+				</div>
+			</div>
+			<div class="grid grid-cols-7 border-b border-(--trioxide_neutral-3)" style="direction:{dir}">
+				{#each weekDaysNames as d}
+					<div class="text-center {d.isWeekend ? 'bg-(--trioxide_neutral-2)' : ''}">
+						{d.short}
+					</div>
+				{/each}
+			</div>
+			<div class="grid grid-cols-7" style="direction:{dir}">
+				{#each days as day}
+					<button
+						class="text-center
+						{day.isToday ? 'text-(--trioxide_highlight-10)' : ''}
+						{day.isNextMonth ? 'text-(--trioxide_neutral-10)' : ''}
+						{day.isPrevMonth ? 'text-(--trioxide_neutral-10)' : ''}
+						{day.isWeekend ? 'bg-(--trioxide_neutral-2)' : ''}
+					"
+						{...useGridNavigation}
+						disabled={day.isPrevMonth || day.isNextMonth}
+					>
+						{api.format(day.date, { day: 'numeric' })}
+					</button>
+				{/each}
+			</div>
+		{/snippet}
+	</Calendar>
+	<div class="button_group mt-4">
+		{#each Object.keys(today) as p}
+			<button class:selected={locale == p} onclick={setPlatform(p as any)}>{p.split('-')[0]}</button
+			>
+		{/each}
+	</div>
+</div>
+
+---
+
+## Usage
+
+Pass a `View` snippet that receives `CalendarData` and bind to the `api` for helpers like `format`, `sameDay`, and month navigation.
+
+```svelte
+<script lang="ts">
+	import { Calendar, type CalendarApi } from '@obelus/trioxide';
+	import '@obelus/trioxide/index.css';
+
+	let locale = $state('en-US');
+	let api = $state({}) as CalendarApi;
+</script>
+
+<Calendar
+	{locale}
+	bind:api
+	onGridNavigationInlineEnd={api.goToNextMonth}
+	onGridNavigationInlineStart={api.goToPrevMonth}
+>
+	{#snippet View({ activeDate, days, weekDaysNames, dir, useGridNavigation })}
+		<div {dir}>
+			<header>
+				<button on:click={api.goToPrevMonth} aria-label="Previous month">←</button>
+				<span>{api.format(activeDate!, { month: 'long', year: 'numeric' })}</span>
+				<button on:click={api.goToNextMonth} aria-label="Next month">→</button>
+			</header>
+
+			<div class="weekdays">
+				{#each weekDaysNames as d}
+					<span class:weekend={d.isWeekend}>{d.short}</span>
+				{/each}
+			</div>
+
+			<div class="days">
+				{#each days as day}
+					<button {...useGridNavigation} disabled={day.isPrevMonth || day.isNextMonth}>
+						{api.format(day.date, { day: 'numeric' })}
+					</button>
+				{/each}
+			</div>
+		</div>
+	{/snippet}
+</Calendar>
+```
+
+`useGridNavigation` wires up arrow-key movement across your buttons and calls the `onGridNavigation…` callbacks when focus would leave the grid (handy for jumping to the next/previous month).
+
+---
+
+## Calendar data
+
+- `activeDate`: anchor date for the current view (defaults to today).
+- `days`: array of day objects for the rendered range; each has `date`, `isToday`, `isWeekend`, `isPrevMonth`, and `isNextMonth`.
+- `weekDaysNames`: localized weekday labels (`long`, `narrow`, `short`) plus `isWeekend`.
+- `weekStartOffset`: how many days from the locale’s first day of week to the start of the month (useful for CSS grid placement).
+- `dir`: `'ltr'` | `'rtl'` inferred from the locale; apply to your container so grid navigation matches.
+- `useGridNavigation`: Svelte action to attach to focusable day cells for keyboard movement.
+
+---
+
+## Props
+
+- `View` (required): snippet receiving `CalendarData` to render the UI.
+- `locale`: BCP 47 locale used for formatting, weekends, week start, and direction; defaults to `navigator.languages[0]`.
+- `show`: `'extended'` (default 6-row view padded with prev/next month), `'month'` (only the active month), or a number of additional months to include (e.g. `show={1}` renders the active month plus the next).
+- `activeDate` / `bind:activeDate`: controls which month is shown and updates when navigation happens.
+- `api` / `bind:api`: receives the populated `CalendarApi`.
+- `onGridNavigationInlineStart` / `onGridNavigationInlineEnd` / `onGridNavigationBlockStart` / `onGridNavigationBlockEnd`: callbacks invoked when arrow navigation tries to leave the current grid in that direction.
+
+---
+
+## CalendarApi
+
+- `goToNextMonth()`, `goToPrevMonth()`, `goToToday()`: update `activeDate`.
+- `format(date, options?)` / `formatToParts(date, options?)`: localized formatting helpers bound to the chosen locale.
+- `sameDay(a, b)`: compares dates ignoring time.
+- `isBetween(date, start, end)`: inclusive range check (useful for range highlighting).
+
+---
