@@ -61,7 +61,6 @@ Locale-aware calendar primitive that gives you precomputed month/day metadata, w
 						{day.isWeekend ? 'bg-(--trioxide_neutral-2)' : ''}
 					"
 						{...useGridNavigation}
-						disabled={day.isPrevMonth || day.isNextMonth}
 					>
 						{api.format(day.date, { day: 'numeric' })}
 					</button>

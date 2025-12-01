@@ -31,6 +31,6 @@ Svelte 5 customizable componets, focused on non-trivial UI pieces that are tedio
 - [x] Docker
 - [x] Swappable
 - [x] Kbd
-- [ ] Callendar
+- [x] Callendar
 
 Docs and demos: https://trioxide.obelus.fi
