@@ -6,6 +6,12 @@
 
 Svelte 5 customizable componets, focused on non-trivial UI pieces that are tedious to reimplement.
 
+## Install
+
+```shell
+npm i @obelusfi/trioxide
+```
+
 ## Main focus
 
 - Non-trivial UI pieces

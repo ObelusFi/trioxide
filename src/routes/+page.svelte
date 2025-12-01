@@ -1,9 +1,10 @@
 <script>
 	import { resolve } from '$app/paths';
+	import Install from '../components/Install.svelte';
 </script>
 
 <section class="flex h-dvh flex-col items-center justify-center gap-8 px-12">
-	<svg viewBox="0 0 722 311" fill="none" xmlns="http://www.w3.org/2000/svg" class=" w-50">
+	<svg viewBox="0 0 722 311" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-66">
 		<g>
 			<path
 				style:--o="1"
@@ -85,6 +86,7 @@
 	<a href={resolve('/components/calendar')} class=" text-(--trioxide_highlight-11)">
 		Explore the components
 	</a>
+	<Install></Install>
 </section>
 
 <style>

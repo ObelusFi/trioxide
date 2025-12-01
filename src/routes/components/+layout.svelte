@@ -5,6 +5,7 @@
 	import Logo from '../../components/Logo.svelte';
 	import { resolve } from '$app/paths';
 	import { afterNavigate } from '$app/navigation';
+	import Footer from '../../components/Footer.svelte';
 
 	let { children, data } = $props();
 	let content: HTMLElement = $state(null!);
@@ -143,6 +144,7 @@
 					</a>
 				{/if}
 			</nav>
+			<Footer></Footer>
 		</div>
 		<aside class="sticky top-20 hidden flex-col self-start text-sm lg:flex">
 			<span class="mb-4 flex gap-1 text-(--trioxide_neutral-11)">
