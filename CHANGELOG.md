@@ -1,3 +1,8 @@
+## v0.3.0 - 2025-12-01
+
+- feat: Add calendar component and docs
+- chore: fix script, add description to package.json fix CHANGELOG
+
 ## v0.2.1 - 2025-11-30
 
 - chore: documentation - close menu on navigation - prevent prevent scroll when menu is open
@@ -24,3 +29,4 @@
 - chore: add licence
 - chore: update readme
 - chore: first
+
