@@ -231,10 +231,14 @@
 		lastPos = [x, y];
 	};
 
-	const splittingStart = (node: PanelNode) => (e: MouseEvent) => {
-		if (e.buttons != 1) return;
+	const splittingStart = (node: PanelNode) => (e: MouseEvent | TouchEvent) => {
+		if (e instanceof MouseEvent) {
+			if (e.buttons != 1) return;
+			lastPos = [e.clientX, e.clientY];
+		} else {
+			lastPos = [e.touches[0].clientX, e.touches[0].clientY];
+		}
 		splitTargetStart = node;
-		lastPos = [e.clientX, e.clientY];
 	};
 
 	const resizeStart = (node: PanelNode) => (e: MouseEvent | TouchEvent) => {
@@ -481,6 +485,7 @@
 		<button
 			class="trioxide_hotcorner {props?.class?.toString() || 'trioxide_hotcorner-default'} {pos}"
 			onmousedown={splittingStart(node)}
+			ontouchstart={splittingStart(node)}
 			{...omit(props, 'class', 'onmousedown')}
 		>
 			{@render HotcornerContent?.(pos)}</button
