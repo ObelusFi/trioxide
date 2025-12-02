@@ -38,7 +38,7 @@ npm i @obelusfi/trioxide
 - [x] Swappable
 - [x] Kbd
 - [x] Calendar
-- [ ] Tag input
+- [x] Tag input
 - [ ] Autocomplete suggestions
 
 Docs and demos: https://trioxide.obelus.fi

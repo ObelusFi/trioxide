@@ -1,0 +1,100 @@
+<script lang="ts">
+	import Tags from '$lib/Tags.svelte';
+	import Kbd from '$lib/Kbd.svelte'
+	let tags: { value: string }[] = $state([{ value: 'svelte' }, { value: 'runes' }, { value: 'ui' }]);
+	const removeTag = (t: { value: string }) => () => {
+		tags.splice(tags.indexOf(t), 1);
+	};
+</script>
+
+# Tags
+
+Freeform tag input with inline editing. Arrow/backspace moves the caret so you can insert at any position, click a tag to edit it in place, and control rendering/validation via snippets. Arrow keys do not reorder tags; they only move the caret so tags stay put unless you edit their text.
+
+<div class="flex flex-col gap-1">
+	<Tags
+		bind:tags
+		createOn={['Enter']}
+		class="flex cursor-text flex-wrap gap-1 rounded-sm border border-(--trioxide_neutral-7) p-2 focus-within:border-(--trioxide_highlight-10)"
+	>
+		{#snippet Tag(v, props)}
+			<span
+				class="inline-flex items-center gap-1 rounded-sm bg-(--trioxide_neutral-3) px-2 py-1 text-sm"
+				{...props}
+			>
+				{v.value}
+				<button aria-label={`Remove ${v.value}`} onclick={removeTag(v)}>
+					<i class="ri-close-line"></i>
+				</button>
+			</span>
+		{/snippet}
+
+    	{#snippet PlaceHolder()}
+    		<span class="text-(--trioxide_neutral-7)">Type and press Enter...</span>
+    	{/snippet}
+    </Tags>
+
+</div>
+
+<p class="mt-2 text-sm text-(--trioxide_neutral-11)">
+	Press <Kbd keys={["Enter"]}/> to create a tag at the caret. <Kbd keys={["Delete"]}/> at the start of a tag pulls the previous
+	tag into edit mode; clicking a pill does the same.
+	<Kbd keys={["Left"]}/> and <Kbd keys={["Right"]}/> move the cursor arround
+</p>
+
+---
+
+## Usage
+
+```svelte
+<script lang="ts">
+	import { Tags } from '@obelus/trioxide';
+	import '@obelus/trioxide/index.css';
+
+	type Tag = { value: string };
+
+	let tags: Tag[] = $state([{ value: 'svelte' }]);
+
+	const normalize = ({ value }: Tag) => {
+		const v = value.trim().toLowerCase();
+		if (!v) return;
+		return { value: v } satisfies Tag;
+	};
+
+	const shouldCreate: (event: KeyboardEvent) => boolean = (event) =>
+		event.key === 'Enter' || event.key === ',';
+</script>
+
+<Tags
+	bind:tags
+	onTag={normalize}
+	createOn={shouldCreate}
+	class="flex flex-wrap items-center gap-2 rounded-sm border border-(--trioxide_neutral-7) p-2 focus-within:border-(--trioxide_highlight-10)"
+>
+	{#snippet Tag(tag, props)}
+		<span class="rounded-sm bg-(--trioxide_neutral-3) px-2 py-1" {...props}>
+			{tag.value}
+			<button aria-label={`Remove ${tag.value}`} onclick={() => tags.splice(tags.indexOf(tag), 1)}>
+				<i class="ri-close-line"></i>
+			</button>
+		</span>
+	{/snippet}
+
+	{#snippet PlaceHolder()}
+		<span class="text-(--trioxide_neutral-7)">Add a tag...</span>
+	{/snippet}
+</Tags>
+```
+
+---
+
+## Props
+
+- `tags` / `bind:tags`: array mutated in place as the user types or deletes; keep it in `$state` if you need reactivity. `tags` is generic, so each item can carry additional props (`id`, `color`, `count`) that you render inside `Tag`.
+- `Tag`: snippet `(tag, props)`; render your pill and spread `props` so the component can handle focus and click-to-edit behavior.
+- `PlaceHolder`: optional snippet shown when no tags are present and the input is unfocused.
+- `createOn` (default `[' ', 'Enter']`): keys that create a tag, or a predicate `(event: KeyboardEvent) => boolean` to decide per keystroke.
+- `onTag({ value })`: optional sanitizer; return the normalized tag object to accept it or `undefined` to reject (used on creation, blur, and when moving tags around).
+- Remaining `HTMLLabelAttributes` apply to the outer `<label>` (e.g., classes, `aria-*`).
+
+---

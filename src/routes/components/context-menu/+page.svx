@@ -73,7 +73,7 @@ Place a single `ContextMenu` component near the root of your app, then attach th
 ```svelte
 <script lang="ts">
 	import { ContextMenu, useContextMenu, type Menu } from '@obelus/trioxide';
-	import '@obelus/trioxide/index.css'; // default light/dark tokens (feel free to rename to default_themes.css)
+	import '@obelus/trioxide/index.css'; // default light/dark tokens
 
 	let lastAction = $state('None');
 

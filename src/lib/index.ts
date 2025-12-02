@@ -8,3 +8,6 @@ export { default as Swappable } from './Swappable.svelte';
 
 export * from './Kbd.svelte';
 export { default as Kbd } from './Kbd.svelte';
+
+export * from './Tags.svelte';
+export { default as Tags } from './Kbd.svelte';
