@@ -4,7 +4,7 @@
 
 <h1 align="center">Trioxide</h1>
 
-Svelte 5 customizable componets, focused on non-trivial UI pieces that are tedious to reimplement.
+Svelte 5 customizable components, focused on non-trivial UI pieces that are tedious to reimplement.
 
 ## Install
 
@@ -37,7 +37,7 @@ npm i @obelusfi/trioxide
 - [x] Docker
 - [x] Swappable
 - [x] Kbd
-- [x] Callendar
+- [x] Calendar
 - [ ] Tag input
 - [ ] Autocomplete suggestions
 
