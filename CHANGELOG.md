@@ -1,3 +1,15 @@
+## v0.3.1 - 2025-12-02
+
+- chore: make publish the last step of script
+- fix: make full item draggable in docs
+- feat: add tags component
+- chore: Typos
+- Fix typos in README.md
+- add future components
+- chore: doc updates and install cmds
+- patch: add touch events to docker
+- chore: fix readme
+
 ## v0.3.0 - 2025-12-01
 
 - feat: Add calendar component and docs
