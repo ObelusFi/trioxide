@@ -88,8 +88,6 @@ await $`git add .`;
 await $`git commit -m ${`chore: release ${tag}`}`;
 await $`git tag ${tag}`;
 await $`git push --tag`;
-await $`npm login`;
-await $`npm publish --access public`;
 
 const releaseNotes = `Changes in ${tag} (${date})\n\n${commitBullets}\n`;
 const tmpNotes = join(tmpdir(), `trioxide-release-${Date.now()}.md`);
@@ -101,3 +99,6 @@ try {
 } catch {
 	console.warn('Skipped GitHub release (gh not available).');
 }
+
+await $`npm login`;
+await $`npm publish --access public`;
