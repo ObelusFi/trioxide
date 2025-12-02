@@ -17,13 +17,12 @@ Drag-and-drop list reordering with a tiny contract: provide an `items` array and
 			{@const { element, handle, isDragging } = bindings}
 			<div
 				{...element}
-				class=" flex rounded-sm border p-1 {isDragging
-					? 'z-10 border-(--trioxide_highlight-7) bg-(--trioxide_highlight-2)'
-					: 'border-(--trioxide_neutral-7) bg-(--trioxide_neutral-2)'}"
+				{...handle}
+				class=" flex select-none  rounded-sm border p-1 {isDragging
+					? 'z-10 border-(--trioxide_highlight-7) bg-(--trioxide_highlight-2) cursor-grabbing'
+					: 'border-(--trioxide_neutral-7) bg-(--trioxide_neutral-2)'} cursor-grab"
 			>
-				<button {...handle} class={isDragging ? 'cursor-grabbing' : 'cursor-grab'}>
 					<i class="ri-draggable"></i>
-				</button>
 				<span>{p.title}</span>
 			</div>
 		{/snippet}
