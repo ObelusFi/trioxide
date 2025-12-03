@@ -1,3 +1,8 @@
+## v0.3.2 - 2025-12-03
+
+- chore: update links
+- feat: add autocomplete and some chores
+
 ## v0.3.1 - 2025-12-02
 
 - chore: make publish the last step of script
