@@ -1,0 +1,103 @@
+<script lang="ts">
+	import Autocomplete, { DefaultSuggestionProvider, type SuggestionProvider } from '$lib/Autocomplete.svelte';
+	import Kbd from '$lib/Kbd.svelte';
+	import { words } from './words.ts';
+
+	const provider: SuggestionProvider = new DefaultSuggestionProvider(words);
+	let value = $state('');
+	const acceptOnTab = (event: KeyboardEvent) => event.key === 'Tab' && (event.preventDefault() ?? true);
+</script>
+
+# Autocomplete
+
+Inline ghost suggestions for inputs or textareas. Suggestions come from a pluggable provider (sync or async) and are accepted with <Kbd keys="{['ArrowRight']}"></Kbd>/<Kbd keys="{['ArrowLeft']}"></Kbd> by default or any custom keymap.
+
+The demo dictionary has {words.length} words; press <Kbd keys="{['Tab']}"></Kbd> to accept the completion.
+
+<Autocomplete
+provider={provider}
+bind:value
+acceptOn={acceptOnTab}
+placeholder="Type something"
+ghostProps={{ class: 'opacity-40' }}
+class="rounded-sm border border-(--trioxide_neutral-7) p-2 focus-within:border-(--trioxide_highlight-11)"
+name="autocomplete"
+/>
+
+<p class="mt-2 text-sm text-(--trioxide_neutral-11)">
+	Type a word and press the accept key to append the suggestion.
+</p>
+
+---
+
+## Usage
+
+```svelte
+<script lang="ts">
+	import {
+		Autocomplete,
+		DefaultSuggestionProvider,
+		type SuggestionProvider
+	} from '@obelus/trioxide';
+
+	const provider = new DefaultSuggestionProvider([
+		'Svelte',
+		'SvelteKit',
+		'Trioxide',
+		'TypeScript',
+		'Autocompletion'
+	]);
+
+	let note = $state('');
+	const acceptOnTab = (event: KeyboardEvent) => {
+		if (event.key !== 'Tab') return false;
+		event.preventDefault();
+		return true;
+	};
+</script>
+
+<Autocomplete
+	type="textarea"
+	bind:value={note}
+	{provider}
+	acceptOn={acceptOnTab}
+	placeholder="Start typing..."
+	class="rounded-sm border p-2"
+	ghostProps={{ class: 'opacity-50' }}
+/>
+```
+
+---
+
+## Suggestion providers
+
+- `SuggestionProvider` implements `suggest(input: string): string | Promise<string>` and returns the suffix to append to the current text. Return an empty string when there is nothing to suggest.
+- `DefaultSuggestionProvider` tokenizes the last word via `Intl.Segmenter` and finds the longest prefix match (case-insensitive) from a list of candidates, returning only the remaining suffix. Update candidates later with `setCandidates(list)`.
+- Providers can be async, so you can fetch suggestions as the user types:
+
+```svelte
+<script lang="ts">
+	class AsyncCities implements SuggestionProvider {
+		async suggest(input: string) {
+			if (input.length < 2) return '';
+			const match = await lookupCity(input); // your own fetch/cache
+			return match ? match.slice(input.length) : '';
+		}
+	}
+
+	const provider = new AsyncCities();
+</script>
+```
+
+---
+
+## Behavior and props
+
+- `value` / `bind:value`: the full text. When the accept key fires, the current suggestion is appended to this string.
+- `provider` (required): supplies the suggestion suffix; may be sync or async.
+- `acceptOn` (default: <Kbd keys="{['ArrowRight']}"></Kbd> or <Kbd keys="{['ArrowLeft']}"></Kbd> in RTL): `(event) => boolean` to decide whether to accept. Call `preventDefault()` if you repurpose Tab so focus stays put.
+- `type`: `'input' | 'textarea'` (default `'textarea'`).
+- `ghostProps`: forwarded to the ghost overlay `<div>`;
+- Remaining `HTMLInputAttributes`/`HTMLTextareaAttributes` (`placeholder`, `name`, `rows`, `aria-*`, etc.) are passed to the native control. `class` targets the outer wrapper so you can handle borders/padding there.
+
+---

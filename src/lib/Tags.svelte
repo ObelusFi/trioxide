@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack, type Snippet } from 'svelte';
-	import type { HTMLLabelAttributes } from 'svelte/elements';
+	import type { HTMLInputAttributes, HTMLLabelAttributes } from 'svelte/elements';
 	type T = $$Generic<{ value: string }>;
 
 	let {
@@ -13,6 +13,7 @@
 		},
 		PlaceHolder,
 		createOn = [' ', 'Enter'],
+		cursorProps,
 		...containerProps
 	}: {
 		tags: T[];
@@ -20,6 +21,7 @@
 		Tag: Snippet<[value: T, props: Record<string, any>]>;
 		PlaceHolder?: Snippet;
 		onTag?: (newValue: { value: string }) => T | undefined;
+		cursorProps?: HTMLInputAttributes;
 	} & HTMLLabelAttributes = $props();
 	let cursor = $state({
 		value: '',
@@ -242,6 +244,7 @@
 			{@render Tag(v, { onmousedown: onclick(v) })}
 		{:else}
 			<input
+				{...cursorProps}
 				type="text"
 				bind:this={cursorEl}
 				bind:value={cursor.value}

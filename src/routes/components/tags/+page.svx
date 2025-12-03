@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Tags from '$lib/Tags.svelte';
-	import Kbd from '$lib/Kbd.svelte'
+	import Kbd from '$lib/Kbd.svelte';
 	let tags: { value: string }[] = $state([{ value: 'svelte' }, { value: 'runes' }, { value: 'ui' }]);
 	const removeTag = (t: { value: string }) => () => {
 		tags.splice(tags.indexOf(t), 1);
@@ -16,6 +16,7 @@ Freeform tag input with inline editing. Arrow/backspace moves the caret so you c
 		bind:tags
 		createOn={['Enter']}
 		class="flex cursor-text flex-wrap gap-1 rounded-sm border border-(--trioxide_neutral-7) p-2 focus-within:border-(--trioxide_highlight-10)"
+		cursorProps={{class:"mx-1"}}
 	>
 		{#snippet Tag(v, props)}
 			<span
@@ -39,7 +40,7 @@ Freeform tag input with inline editing. Arrow/backspace moves the caret so you c
 <p class="mt-2 text-sm text-(--trioxide_neutral-11)">
 	Press <Kbd keys={["Enter"]}/> to create a tag at the caret. <Kbd keys={["Delete"]}/> at the start of a tag pulls the previous
 	tag into edit mode; clicking a pill does the same.
-	<Kbd keys={["Left"]}/> and <Kbd keys={["Right"]}/> move the cursor arround
+	<Kbd keys={["Left"]}/> and <Kbd keys={["Right"]}/> move the cursor around
 </p>
 
 ---
@@ -49,7 +50,6 @@ Freeform tag input with inline editing. Arrow/backspace moves the caret so you c
 ```svelte
 <script lang="ts">
 	import { Tags } from '@obelus/trioxide';
-	import '@obelus/trioxide/index.css';
 
 	type Tag = { value: string };
 
@@ -95,6 +95,7 @@ Freeform tag input with inline editing. Arrow/backspace moves the caret so you c
 - `PlaceHolder`: optional snippet shown when no tags are present and the input is unfocused.
 - `createOn` (default `[' ', 'Enter']`): keys that create a tag, or a predicate `(event: KeyboardEvent) => boolean` to decide per keystroke.
 - `onTag({ value })`: optional sanitizer; return the normalized tag object to accept it or `undefined` to reject (used on creation, blur, and when moving tags around).
+- `cursorProps` are used to pass props to the cursor `<input>`
 - Remaining `HTMLLabelAttributes` apply to the outer `<label>` (e.g., classes, `aria-*`).
 
 ---

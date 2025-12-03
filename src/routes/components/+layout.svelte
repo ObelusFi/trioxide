@@ -1,6 +1,6 @@
 <script lang="ts">
 	import '$lib/index.css';
-	import { onMount, untrack } from 'svelte';
+	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import Logo from '../../components/Logo.svelte';
 	import { resolve } from '$app/paths';
