@@ -39,6 +39,6 @@ npm i @obelusfi/trioxide
 - [x] Kbd
 - [x] Calendar
 - [x] Tag input
-- [ ] Autocomplete suggestions
+- [x] Autocomplete
 
 Docs and demos: https://trioxide.obelus.fi

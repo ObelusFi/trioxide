@@ -83,7 +83,7 @@
 		</g>
 	</svg>
 
-	<a href={resolve('/components/calendar')} class=" text-(--trioxide_highlight-11)">
+	<a href={resolve('/components/autocomplete')} class=" text-(--trioxide_highlight-11)">
 		Explore the components
 	</a>
 	<Install></Install>
