@@ -40,5 +40,6 @@ npm i @obelusfi/trioxide
 - [x] Calendar
 - [x] Tag input
 - [x] Autocomplete
+- [x] Viewport
 
 Docs and demos: https://trioxide.obelus.fi

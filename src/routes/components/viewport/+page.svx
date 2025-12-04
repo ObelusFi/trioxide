@@ -1,0 +1,60 @@
+<script>
+	import Viewport from '$lib/Viewport.svelte';
+
+	let viewport = $state({ x: 0, y: 0, zoom: 2 });
+</script>
+
+# Viewport
+
+A panning/zooming wrapper that keeps child content in world space while the camera moves.
+
+<Viewport
+	bind:viewport
+	pattern="circle"
+	class="h-80 rounded-md border border-(--trioxide_neutral-7) cursor-grab active:cursor-grabbing">
+
+<div class="select-none rounded-md bg-(--trioxide_neutral-3) px-4 py-3 shadow-sm inline-block">
+Zoom or pan here
+</div>
+</Viewport>
+
+---
+
+## Usage
+
+```svelte
+<script lang="ts">
+	import { Viewport } from '@obelus/trioxide';
+	import '@obelus/trioxide/index.css';
+
+	let viewport = $state({ x: 0, y: 0, zoom: 1 });
+</script>
+
+<Viewport bind:viewport min-zoom={0.5} max-zoom={4} pattern="square">
+	<div class="h-32 w-32 rounded-md bg-(--trioxide_highlight-4)"></div>
+</Viewport>
+```
+
+- Bind `viewport` to react to panning/zooming or to programmatically set the camera.
+- Place any elements inside; they will be translated and scaled together.
+
+---
+
+## Props
+
+- `bind:viewport`: `{ x: number; y: number; zoom: number }` — camera state in pixels and scale.
+- `min-zoom` / `max-zoom`: zoom clamp (default `0.2` / `10`).
+- `pattern`: `'none' | 'square' | 'circle'` — background helper grid (default `'none'`).
+- `pattern-color`: CSS color for the grid dots/lines (default `var(--trioxide_neutral-4)`).
+- `pattern-size`: `(zoom: number) => number` — returns the pattern spacing in px; return `0` to hide the grid at specific zooms.
+- Rest props are forwarded to the outer `<div>` so you can add classes, inline styles, or aria attributes.
+
+### Pattern cutoff example
+
+Hide the grid until the user zooms in past `1.5x`, then scale spacing with zoom:
+
+```svelte
+<Viewport bind:viewport pattern="square" pattern-size={(z) => (z > 1.5 ? 12 * z : 0)} />
+```
+
+---
