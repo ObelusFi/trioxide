@@ -40,7 +40,7 @@ Freeform tag input with inline editing. Arrow/backspace moves the caret so you c
 <p class="mt-2 text-sm text-(--trioxide_neutral-11)">
 	Press <Kbd keys={["Enter"]}/> to create a tag at the caret. <Kbd keys={["Delete"]}/> at the start of a tag pulls the previous
 	tag into edit mode; clicking a pill does the same.
-	<Kbd keys={["Left"]}/> and <Kbd keys={["Right"]}/> move the cursor around
+	<Kbd keys={["ArrowLeft"]}/> and <Kbd keys={["ArrowRight"]}/> move the cursor around
 </p>
 
 ---

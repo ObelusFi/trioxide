@@ -447,9 +447,10 @@
 
 	onMount(() => {
 		dir = getComputedStyle(el).direction as 'ltr';
-		if (!api) return;
-		api.closePanel = closePanel;
-		api.splitPanel = splitPanel;
+		if (api) {
+			api.closePanel = closePanel;
+			api.splitPanel = splitPanel;
+		}
 		window.addEventListener('touchmove', onmousemove, { passive: false });
 		window.addEventListener('mousemove', onmousemove, { passive: false });
 		window.addEventListener('mouseup', onmouseup);

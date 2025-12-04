@@ -10,7 +10,7 @@
 
 # Autocomplete
 
-Inline ghost suggestions for inputs or textareas. Suggestions come from a pluggable provider (sync or async) and are accepted with <Kbd keys="{['ArrowRight']}"></Kbd>/<Kbd keys="{['ArrowLeft']}"></Kbd> by default or any custom keymap.
+Inline ghost suggestions for inputs or textareas. Suggestions come from a pluggable provider (sync or async) and are accepted with <Kbd keys="{['ArrowLeft']}"></Kbd> and <Kbd keys="{['ArrowRight']}"></Kbd> by default or any custom keymap.
 
 The demo dictionary has {words.length} words; press <Kbd keys="{['Tab']}"></Kbd> to accept the completion.
 
