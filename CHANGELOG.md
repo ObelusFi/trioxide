@@ -1,3 +1,7 @@
+## v0.4.0 - 2025-12-04
+
+- fix: docker no api bug
+
 ## v0.3.2 - 2025-12-03
 
 - chore: update links
