@@ -39,7 +39,17 @@ A dock-style layout manager that lets you split, move, and resize panels with bo
 	{#snippet C()}
 		C
 	{/snippet}
-	<Docker components={{ A, B, C }} bind:layout {api} min-size={20}></Docker>
+
+    {#snippet Default(node)}
+    	<div class="w-full h-full flex flex-col items-center justify-center gap-1">
+    		<button class="button" onclick={()=>api.setComponent(node,"A")}>Open A</button>
+    		<button class="button" onclick={()=>api.setComponent(node,"B")}>Open B</button>
+    		<button class="button" onclick={()=>api.setComponent(node,"C")}>Open C</button>
+    	</div>
+    {/snippet}
+
+    <Docker components={{ A, B, C }} bind:layout {api} min-size={20} EmptyView={Default}></Docker>
+
 </div>
 
 <p class="mt-2 text-sm text-(--trioxide_neutral-11)">

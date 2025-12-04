@@ -19,6 +19,7 @@
 	export type DockApi = {
 		splitPanel: (node: Panel, dir?: 'w' | 'h', size?: number, targetIsFirst?: boolean) => void;
 		closePanel: (node: Panel) => void;
+		setComponent: (node: Panel, component: string) => void;
 	};
 
 	export type HotcornerProps = (
@@ -74,8 +75,8 @@
 		api
 	}: {
 		layout: Panel;
-		components: Record<string, Snippet | Component>;
-		EmptyView?: Snippet;
+		components: Record<string, Snippet<[{ panel?: Panel }]> | Component<{ panel?: Panel }>>;
+		EmptyView?: Snippet<[Panel]>;
 		HotcornerContent?: Snippet<['tl' | 'tr' | 'bl' | 'br']>;
 		containerProps?: HTMLAttributes<HTMLDivElement>;
 		overlayProps?: OverlayProps;
@@ -391,6 +392,12 @@
 		}
 	});
 
+	const setComponent = (node: Panel, component: string) => {
+		if (components[component]) {
+			node.component = component;
+		}
+	};
+
 	const onmousemove = (e: MouseEvent | TouchEvent) => {
 		if (!splitTargetStart && !resizeTarget?.parentNode) return;
 		let x, y;
@@ -450,6 +457,7 @@
 		if (api) {
 			api.closePanel = closePanel;
 			api.splitPanel = splitPanel;
+			api.setComponent = setComponent;
 		}
 		window.addEventListener('touchmove', onmousemove, { passive: false });
 		window.addEventListener('mousemove', onmousemove, { passive: false });
@@ -528,9 +536,9 @@
 			{/each}
 		{:else}
 			{#if node.component}
-				{@render (components[node.component] as any)()}
+				{@render (components[node.component] as any)(node)}
 			{:else}
-				{@render (EmptyView || EmptyViewDefault)()}
+				{@render (EmptyView || EmptyViewDefault)(node)}
 			{/if}
 			{@render HotCorners(node)}
 		{/if}
@@ -548,7 +556,7 @@
 	{/if}
 {/snippet}
 
-{#snippet EmptyViewDefault()}
+{#snippet EmptyViewDefault(_: Panel)}
 	<div class=""></div>
 {/snippet}
 
