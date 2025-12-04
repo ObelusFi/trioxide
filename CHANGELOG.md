@@ -1,3 +1,7 @@
+## v0.4.1 - 2025-12-04
+
+- feat: pass node to panel components
+
 ## v0.4.0 - 2025-12-04
 
 - fix: docker no api bug
