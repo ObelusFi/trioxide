@@ -12,6 +12,7 @@
 			zoom: 1
 		}),
 		pattern = 'none',
+		'pan-with-mouse': panOnMouse = false,
 		'pattern-color': patternColor = 'var(--trioxide_neutral-4)',
 		'pattern-size': patternSize = (z) => (z > 1 ? 10 * viewport.zoom : 0),
 		...restParams
@@ -20,7 +21,7 @@
 		'min-zoom'?: number;
 		'max-zoom'?: number;
 		viewport?: { x: number; y: number; zoom: number };
-
+		'pan-with-mouse'?: boolean;
 		'pattern-color'?: string;
 		pattern?: 'none' | 'square' | 'circle';
 		'pattern-size'?: (zoom: number) => number;
@@ -70,6 +71,7 @@
 	};
 
 	const onMouseDown = (e: MouseEvent) => {
+		if (!panOnMouse) return;
 		isPanning = true;
 		startX = e.clientX - viewport.x;
 		startY = e.clientY - viewport.y;

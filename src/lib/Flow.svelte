@@ -1,44 +1,51 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 	import { createAttachmentKey } from 'svelte/attachments';
 
-	type Handle = { id: string; type: 'input' | 'output' };
-	type NodeProps = {
-		handles: Handle[];
-		pos: { x: number; y: number };
-	};
-	type EdgeProps = { from: string; to: string };
-	let nodes: NodeProps[] = $state([
-		{
-			handles: [
-				{ id: 'a', type: 'input' },
-				{ id: 'b', type: 'output' }
-			],
-			pos: { x: 0, y: 0 }
-		},
-		{
-			handles: [
-				{ id: 'c', type: 'input' },
-				{ id: 'd', type: 'output' }
-			],
-			pos: { x: 0, y: 0 }
-		}
-	]);
-	let edges: EdgeProps[] = $state([]);
+	type FlowPort = $$Generic<{ id: string }>;
+	type FlowNode = $$Generic<{ ports: FlowPort[]; position: { x: number; y: number } }>;
+	type FlowEdge = $$Generic<{ from: string; to: string }>;
+	type PortEndpoint = [FlowNode, FlowPort];
+
+	let {
+		nodes = $bindable(),
+		edges = $bindable(),
+		Node,
+		Edge,
+		GhostEdge,
+		onEdge
+	}: {
+		nodes: FlowNode[];
+		edges: FlowEdge[];
+		onEdge: (from: PortEndpoint, to: PortEndpoint) => FlowEdge | undefined;
+		Node: Snippet<[node: FlowNode, bindings: ReturnType<typeof createNodeBindings>]>;
+		Edge?: Snippet<[edge: FlowEdge, from: PortAnchor, to: PortAnchor]>;
+		GhostEdge?: Snippet<[from: PortAnchor, to: DOMRect]>;
+	} = $props();
+
 	let el: HTMLElement;
 
 	const drect = (x = 0, y = 0, w = 0, h = 0) => {
 		return { x: x, y: y, width: w, height: h, bottom: 0, left: 0, right: 0, top: 0 } as DOMRect;
 	};
 
-	let elRect: DOMRect = drect();
+	let viewportRect: DOMRect = drect();
 	let scale = 1;
-	let ghost = $state(drect());
-	let from: Handle | null = $state(null);
-	let ghostStartY: number;
-	let ghostStartX: number;
+	let cursorStartX: number;
+	let cursorStartY: number;
+	let ghostBounds = $state(drect());
 
-	const handles: Record<string, { el: HTMLElement; rect: DOMRect }> = $state({});
+	let fromPath: PortEndpoint | null = $state(null);
+	let toPath: PortEndpoint | null = $state(null);
+	let selectedNodes: FlowNode[] = $state([]);
+
+	type PortAnchor = {
+		el: HTMLElement;
+		rect: DOMRect;
+		node: FlowNode;
+	};
+
+	const portRegistry: Record<string, PortAnchor> = $state({});
 
 	const unscaleRect = (r: DOMRect) => {
 		return {
@@ -85,8 +92,8 @@
 
 		// --- rect relative to elRect ------------------------------------
 		const rect = {
-			x: x1 - elRect.x,
-			y: y1 - elRect.y,
+			x: x1 - viewportRect.x,
+			y: y1 - viewportRect.y,
 			width: x2 - x1,
 			height: y2 - y1
 		};
@@ -137,19 +144,19 @@
 	const update = () => {
 		const rect = el.getBoundingClientRect();
 		scale = rect.width / el.offsetWidth || 1;
-		elRect = unscaleRect(el.getBoundingClientRect());
-		for (const [id, { el }] of Object.entries(handles)) {
-			handles[id].rect = unscaleRect(el.getBoundingClientRect());
+		viewportRect = unscaleRect(el.getBoundingClientRect());
+		for (const [id, { el }] of Object.entries(portRegistry)) {
+			portRegistry[id].rect = unscaleRect(el.getBoundingClientRect());
 		}
 		animationFrame = requestAnimationFrame(update);
 	};
 
 	const cancelGhost = () => {
-		from = null;
+		fromPath = null;
+		toPath = null;
 	};
 
-	const moveGhost = (e: MouseEvent | TouchEvent) => {
-		if (!from) return;
+	const mouseMove = (e: MouseEvent | TouchEvent) => {
 		let pageY;
 		let pageX;
 		if (e instanceof MouseEvent) {
@@ -160,138 +167,110 @@
 			pageX = e.touches[0].pageX;
 			pageY = e.touches[0].pageY;
 		}
-		let dx = (pageX - ghostStartX) / scale;
-		let dy = (pageY - ghostStartY) / scale;
-		ghost.x += dx;
-		ghost.y += dy;
-		ghostStartX = pageX;
-		ghostStartY = pageY;
+		let dx = (pageX - cursorStartY) / scale;
+		let dy = (pageY - cursorStartX) / scale;
+		if (fromPath) {
+			moveGhost(dx, dy);
+		} else if (selectedNodes.length) {
+			moveNodes(dx, dy);
+		}
+
+		cursorStartY = pageX;
+		cursorStartX = pageY;
+	};
+
+	const cancelNodeMove = () => {
+		selectedNodes = [];
+	};
+
+	const moveNodes = (dx: number, dy: number) => {
+		if (!selectedNodes.length) return;
+		selectedNodes.forEach((n) => {
+			n.position.x += dx;
+			n.position.y += dy;
+		});
+	};
+
+	const mouseUp = (e: MouseEvent | TouchEvent) => {
+		cancelNodeMove();
+		cancelGhost();
+	};
+
+	const moveGhost = (dx: number, dy: number) => {
+		ghostBounds.x += dx;
+		ghostBounds.y += dy;
 	};
 
 	onMount(() => {
-		elRect = el.getBoundingClientRect();
+		viewportRect = el.getBoundingClientRect();
 		animationFrame = requestAnimationFrame(update);
-		window.addEventListener('mouseup', cancelGhost);
-		window.addEventListener('mousemove', moveGhost);
+		window.addEventListener('mouseup', mouseUp);
+		window.addEventListener('mousemove', mouseMove);
 		return () => {
 			window.removeEventListener('mouseup', cancelGhost);
 			cancelAnimationFrame(animationFrame);
 		};
 	});
 
-	const useHandle = (handle: Handle) => ({
+	const useHandle = (node: FlowNode) => (handle: FlowPort) => ({
 		onmousedown: (e: MouseEvent | TouchEvent) => {
 			e.stopImmediatePropagation();
-			if (e instanceof MouseEvent) {
-				ghostStartX = e.pageX;
-				ghostStartY = e.pageY;
-			} else {
-				ghostStartX = e.touches[0].pageX;
-				ghostStartY = e.touches[0].pageY;
-			}
-			from = handle;
-			ghost = unscaleRect(handles[handle.id].el.getBoundingClientRect());
+			fromPath = [node, handle];
+			ghostBounds = unscaleRect(portRegistry[handle.id].el.getBoundingClientRect());
 		},
 		onmouseup: (e: MouseEvent | TouchEvent) => {
-			if (from) {
-				edges.push({
-					from: from.id,
-					to: handle.id
-				});
+			if (!fromPath) return;
+			const edge = onEdge(fromPath, [node, handle]);
+			if (edge) {
+				edges.push(edge);
 			}
 		},
+		onmouseover: () => {
+			toPath = [node, handle];
+		},
+		onmouseout: () => {
+			toPath = null;
+		},
 		[createAttachmentKey()]: (el: HTMLElement) => {
-			handles[handle.id] = {
+			portRegistry[handle.id] = {
 				el,
-				rect: el.getBoundingClientRect()
+				rect: el.getBoundingClientRect(),
+				node
 			};
 			return () => {
-				delete handles[handle.id];
+				delete portRegistry[handle.id];
 			};
 		}
 	});
 
-	const useNodeFactory = (n: NodeProps) => {
-		let startY: number;
-		let startX: number;
-		let isDragging = $state(false);
-
+	const createNodeBindings = (n: FlowNode) => {
 		function dragStart(e: MouseEvent | TouchEvent) {
 			e.stopImmediatePropagation();
-			isDragging = true;
-			if (e instanceof MouseEvent) {
-				startX = e.pageX;
-				startY = e.pageY;
-			} else {
-				startX = e.touches[0].pageX;
-				startY = e.touches[0].pageY;
-			}
+			selectedNodes = [n];
 		}
 
-		function onMouseMove(e: MouseEvent | TouchEvent) {
-			if (!isDragging) return;
-			let pageY;
-			let pageX;
-			if (e instanceof MouseEvent) {
-				pageX = e.pageX;
-				pageY = e.pageY;
-			} else {
-				e.preventDefault();
-				pageX = e.touches[0].pageX;
-				pageY = e.touches[0].pageY;
-			}
-			let dx = (pageX - startX) / scale;
-			let dy = (pageY - startY) / scale;
-			n.pos.x += dx;
-			n.pos.y += dy;
-
-			startX = pageX;
-			startY = pageY;
-		}
-
-		function onMouseUp() {
-			isDragging = false;
-		}
 		return {
 			get isDragging() {
-				return isDragging;
+				return selectedNodes.includes(n);
 			},
-			useHandle,
-			useDrag: {
+			get activePortEndpoint() {
+				return fromPath;
+			},
+			get hoveredPortEndpoint() {
+				return toPath;
+			},
+			portBindings: useHandle(n),
+			dragBindings: {
 				onmousedown: dragStart,
-				[createAttachmentKey()]: (_: HTMLElement) => {
-					window.addEventListener('mousemove', onMouseMove);
-					window.addEventListener('mouseup', onMouseUp);
-					return () => {
-						window.removeEventListener('mousemove', onMouseMove);
-						window.removeEventListener('mouseup', onMouseUp);
-					};
-				},
 				get style() {
-					return `transform: translate(${n.pos.x}px, ${n.pos.y}px);`;
+					return `transform: translate(${n.position.x}px, ${n.position.y}px);`;
 				}
 			}
 		};
 	};
 </script>
 
-{#snippet Node(n: NodeProps, { useDrag, useHandle }: ReturnType<typeof useNodeFactory>)}
-	<div class="absolute inline-flex border p-4 select-none" {...useDrag}>
-		<div class="flex flex-col justify-center">
-			{#each n.handles.filter((e) => e.type == 'input') as s}
-				<div class="h-2 w-2 bg-red-500" {...useHandle(s)}></div>
-			{/each}
-		</div>
-		<div class="p-2">Some content</div>
-		<div class=" flex flex-col justify-center">
-			{#each n.handles.filter((e) => e.type == 'output') as s}
-				<div class="h-2 w-2 bg-amber-500" {...useHandle(s)}></div>
-			{/each}
-		</div>
-	</div>
-{/snippet}
-
-{#snippet Edge(e: EdgeProps, a: (typeof handles)[''], b: (typeof handles)[''])}
+{#snippet DefaultEdge(_: FlowEdge, a: PortAnchor, b: PortAnchor)}
 	{@const { rect, d } = makeStepArrow(a.rect, b.rect)}
 	<svg
 		class="pointer-events-none absolute overflow-visible"
@@ -305,26 +284,27 @@
 	</svg>
 {/snippet}
 
-{#snippet GhostEdge()}{/snippet}
+{#snippet DefaultGhostEdge(sourceBounds: PortAnchor, cursorBounds: DOMRect)}
+	<!-- 
+		The default implementation doesn't need any of this but a custom one might
+	-->
+	{@render DefaultEdge(null!, sourceBounds, { rect: cursorBounds, el: null!, node: null! })}
+{/snippet}
 
 <div class="relative h-90" bind:this={el}>
 	{#each nodes as node}
-		{@render Node(node, useNodeFactory(node))}
+		{@render Node(node, createNodeBindings(node))}
 	{/each}
 
 	{#each edges as e}
-		{@const a = handles[e.from]}
-		{@const b = handles[e.to]}
+		{@const a = portRegistry[e.from]}
+		{@const b = portRegistry[e.to]}
 		{#if a && b}
-			{@render Edge(e, a, b)}
+			{@render (Edge || DefaultEdge)(e, a, b)}
 		{/if}
 	{/each}
 
-	{#if from}
-		{@const a = handles[from.id]}
-		{@const b = { rect: ghost, el: null! }}
-		{#if a && b}
-			{@render Edge(null!, a, b)}
-		{/if}
+	{#if fromPath && portRegistry[fromPath[1].id]}
+		{@render (GhostEdge || DefaultGhostEdge)(portRegistry[fromPath[1].id], ghostBounds)}
 	{/if}
 </div>
