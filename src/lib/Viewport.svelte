@@ -12,7 +12,7 @@
 			zoom: 1
 		}),
 		pattern = 'none',
-		'pan-with-mouse': panOnMouse = false,
+		'pan-with-mouse': panOnMouse = true,
 		'pattern-color': patternColor = 'var(--trioxide_neutral-4)',
 		'pattern-size': patternSize = (z) => (z > 1 ? 10 * viewport.zoom : 0),
 		...restParams
@@ -31,6 +31,7 @@
 	let isPanning = false;
 	let startX = 0;
 	let startY = 0;
+	let pinchDistance = 0;
 
 	const clamp = (v: number, min: number, max: number) => {
 		return Math.min(Math.max(v, min), max);
@@ -40,6 +41,33 @@
 		if (e.deltaMode === 1) return e.deltaY * 16;
 		if (e.deltaMode === 2) return e.deltaY * window.innerHeight;
 		return e.deltaY; // pixel
+	};
+
+	const applyZoom = (newScale: number, originX: number, originY: number) => {
+		const worldX = (originX - viewport.x) / viewport.zoom;
+		const worldY = (originY - viewport.y) / viewport.zoom;
+
+		viewport.x = originX - worldX * newScale;
+		viewport.y = originY - worldY * newScale;
+		viewport.zoom = newScale;
+	};
+
+	const startPan = (clientX: number, clientY: number) => {
+		isPanning = true;
+		startX = clientX - viewport.x;
+		startY = clientY - viewport.y;
+	};
+
+	const movePan = (clientX: number, clientY: number) => {
+		if (!isPanning) return;
+		viewport.x = clientX - startX;
+		viewport.y = clientY - startY;
+	};
+
+	const normalizedTouchDistance = (touches: TouchList) => {
+		const dx = touches[1].clientX - touches[0].clientX;
+		const dy = touches[1].clientY - touches[0].clientY;
+		return Math.hypot(dx, dy) / Math.hypot(window.innerWidth, window.innerHeight);
 	};
 
 	const onWheel = (e: WheelEvent) => {
@@ -53,45 +81,80 @@
 			const mouseX = e.clientX - rect.left;
 			const mouseY = e.clientY - rect.top;
 
-			const worldX = (mouseX - viewport.x) / viewport.zoom;
-			const worldY = (mouseY - viewport.y) / viewport.zoom;
-
 			const zoomIntensity = 0.01;
 			const delta = getWheelDelta(e);
 			const factor = Math.exp(-delta * zoomIntensity);
+
 			const newScale = clamp(viewport.zoom * factor, minZoom, maxZoom);
 
-			viewport.x = mouseX - worldX * newScale;
-			viewport.y = mouseY - worldY * newScale;
-			viewport.zoom = newScale;
+			applyZoom(newScale, mouseX, mouseY);
 		} else {
 			viewport.x -= e.deltaX;
 			viewport.y -= e.deltaY;
 		}
 	};
 
+	const handlePinchZoom = (e: TouchEvent) => {
+		if (e.touches.length !== 2) return;
+
+		const rect = wrapper.getBoundingClientRect();
+		const distance = normalizedTouchDistance(e.touches);
+		const deltaDistance = distance - pinchDistance;
+		const zoomFactor = 10;
+		const newScale = clamp(viewport.zoom + deltaDistance * zoomFactor, minZoom, maxZoom);
+
+		const mouseX = (e.touches[1].clientX + e.touches[0].clientX) / 2 - rect.left;
+		const mouseY = (e.touches[1].clientY + e.touches[0].clientY) / 2 - rect.top;
+
+		applyZoom(newScale, mouseX, mouseY);
+		pinchDistance = distance;
+	};
+
 	const onMouseDown = (e: MouseEvent) => {
 		if (!panOnMouse) return;
-		isPanning = true;
-		startX = e.clientX - viewport.x;
-		startY = e.clientY - viewport.y;
+		startPan(e.clientX, e.clientY);
 	};
-	const onMouseMove = (e: MouseEvent) => {
-		if (!isPanning) return;
-		viewport.x = e.clientX - startX;
-		viewport.y = e.clientY - startY;
+
+	const onTouchStart = (e: TouchEvent) => {
+		if (e.touches.length === 0) return;
+		if (e.touches.length === 2) {
+			pinchDistance = normalizedTouchDistance(e.touches);
+		}
+		startPan(e.touches[0].clientX, e.touches[0].clientY);
 	};
+
+	const onMouseMove = (e: MouseEvent) => movePan(e.clientX, e.clientY);
+
+	const onTouchMove = (e: TouchEvent) => {
+		e.preventDefault();
+		if (e.touches.length === 2) {
+			handlePinchZoom(e);
+			return;
+		}
+		movePan(e.touches[0].clientX, e.touches[0].clientY);
+	};
+
 	const onMouseUp = () => (isPanning = false);
 
 	onMount(() => {
 		wrapper.addEventListener('wheel', onWheel, { passive: false, capture: false });
+
+		window.addEventListener('mouseup', onMouseUp);
+		window.addEventListener('touchend', onMouseUp);
+
+		wrapper.addEventListener('mousemove', onMouseMove);
+		wrapper.addEventListener('touchmove', onTouchMove, { passive: false, capture: false });
 		return () => {
 			wrapper.removeEventListener('wheel', onWheel);
+
+			window.removeEventListener('mouseup', onMouseUp);
+			window.removeEventListener('touchend', onMouseUp);
+
+			wrapper.removeEventListener('mousemove', onMouseMove);
+			wrapper.removeEventListener('touchmove', onTouchMove);
 		};
 	});
 </script>
-
-<svelte:window onmouseup={onMouseUp} onmousemove={onMouseMove} />
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
@@ -107,6 +170,7 @@
 	{...restParams}
 	bind:this={wrapper}
 	onmousedown={onMouseDown}
+	ontouchstart={onTouchStart}
 	style:overflow="clip"
 	style:--s={viewport.zoom}
 	style:--px="{viewport.x}px"
