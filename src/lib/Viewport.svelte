@@ -137,13 +137,13 @@
 	const onMouseUp = () => (isPanning = false);
 
 	onMount(() => {
-		wrapper.addEventListener('wheel', onWheel, { passive: false, capture: false });
+		wrapper.addEventListener('wheel', onWheel, { passive: false });
 
 		window.addEventListener('mouseup', onMouseUp);
 		window.addEventListener('touchend', onMouseUp);
 
 		wrapper.addEventListener('mousemove', onMouseMove);
-		wrapper.addEventListener('touchmove', onTouchMove, { passive: false, capture: false });
+		wrapper.addEventListener('touchmove', onTouchMove, { passive: false });
 		return () => {
 			wrapper.removeEventListener('wheel', onWheel);
 

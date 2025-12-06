@@ -1,11 +1,28 @@
 <script lang="ts">
+	/**
+	 * TODO:
+	 *  - figure out a better api for custom arrows
+	 *  - edge selection
+	 *  - touch events
+	 *
+	 *
+	 */
 	import { onMount, type Snippet } from 'svelte';
 	import { createAttachmentKey } from 'svelte/attachments';
+	import { SvelteSet } from 'svelte/reactivity';
 
 	type FlowPort = $$Generic<{ id: string }>;
 	type FlowNode = $$Generic<{ ports: FlowPort[]; position: { x: number; y: number } }>;
 	type FlowEdge = $$Generic<{ from: string; to: string }>;
 	type PortEndpoint = [FlowNode, FlowPort];
+	type PortAnchor = {
+		el: HTMLElement;
+		rect: DOMRect;
+		node: FlowNode;
+		port: FlowPort;
+	};
+
+	type EdgeType = 'step' | 'smooth' | 'line';
 
 	let {
 		nodes = $bindable(),
@@ -13,50 +30,88 @@
 		Node,
 		Edge,
 		GhostEdge,
-		onEdge
+		onEdge,
+		'edge-type': mode = 'smooth'
 	}: {
 		nodes: FlowNode[];
 		edges: FlowEdge[];
+		'edge-type'?: EdgeType;
 		onEdge: (from: PortEndpoint, to: PortEndpoint) => FlowEdge | undefined;
 		Node: Snippet<[node: FlowNode, bindings: ReturnType<typeof createNodeBindings>]>;
 		Edge?: Snippet<[edge: FlowEdge, from: PortAnchor, to: PortAnchor]>;
 		GhostEdge?: Snippet<[from: PortAnchor, to: DOMRect]>;
 	} = $props();
 
-	let el: HTMLElement;
-
-	const drect = (x = 0, y = 0, w = 0, h = 0) => {
-		return { x: x, y: y, width: w, height: h, bottom: 0, left: 0, right: 0, top: 0 } as DOMRect;
-	};
+	const drect = (x = 0, y = 0, w = 0, h = 0) =>
+		({ x, y, width: w, height: h, bottom: 0, left: 0, right: 0, top: 0 } as DOMRect);
 
 	let viewportRect: DOMRect = drect();
 	let scale = 1;
-	let cursorStartX: number;
-	let cursorStartY: number;
+	let cursorStartX: number = 0;
+	let cursorStartY: number = 0;
 	let ghostBounds = $state(drect());
+	let el: HTMLElement;
+	let draggingNodes = false;
+	let clearSelection = true;
 
 	let fromPath: PortEndpoint | null = $state(null);
 	let toPath: PortEndpoint | null = $state(null);
-	let selectedNodes: FlowNode[] = $state([]);
-
-	type PortAnchor = {
-		el: HTMLElement;
-		rect: DOMRect;
-		node: FlowNode;
-	};
+	let selectedNodes: Set<FlowNode> = new SvelteSet();
+	let selecting = $state(false);
+	let animationFrame: ReturnType<typeof requestAnimationFrame>;
 
 	const portRegistry: Record<string, PortAnchor> = $state({});
+	const nodeRegistry: Map<FlowNode, HTMLElement> = new Map();
 
-	const unscaleRect = (r: DOMRect) => {
-		return {
+	const selectionStartPoint = $state({ x: 0, y: 0 });
+	const selectionEndPoint = $state({ x: 0, y: 0 });
+	const selection = $derived.by(() => {
+		const x1 = Math.min(selectionStartPoint.x, selectionEndPoint.x);
+		const y1 = Math.min(selectionStartPoint.y, selectionEndPoint.y);
+		const x2 = Math.max(selectionStartPoint.x, selectionEndPoint.x);
+		const y2 = Math.max(selectionStartPoint.y, selectionEndPoint.y);
+		return { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
+	});
+
+	const unscaleRect = (r: DOMRect) =>
+		({
 			x: r.x / scale,
 			y: r.y / scale,
 			width: r.width / scale,
 			height: r.height / scale
-		} as DOMRect;
+		} as DOMRect);
+
+	const toViewportCoords = (clientX: number, clientY: number) => ({
+		x: clientX / scale - viewportRect.x,
+		y: clientY / scale - viewportRect.y
+	});
+
+	const getClientPoint = (
+		event: MouseEvent | TouchEvent,
+		{ preferChangedTouches = false } = {}
+	) => {
+		if (event instanceof TouchEvent) {
+			const touch = preferChangedTouches
+				? event.changedTouches[0] || event.touches[0]
+				: event.touches[0] || event.changedTouches[0];
+
+			if (touch) {
+				return { x: touch.clientX, y: touch.clientY };
+			}
+		}
+		return {
+			x: (event as MouseEvent).clientX ?? cursorStartX,
+			y: (event as MouseEvent).clientY ?? cursorStartY
+		};
 	};
 
-	function makeStepArrow(a: DOMRect, b: DOMRect) {
+	const setCursorFromEvent = (event: MouseEvent | TouchEvent, preferChangedTouches = false) => {
+		const { x, y } = getClientPoint(event, { preferChangedTouches });
+		cursorStartX = x;
+		cursorStartY = y;
+	};
+
+	const makeStepArrow = (a: DOMRect, b: DOMRect) => {
 		if (!a || !b)
 			return {
 				d: '',
@@ -71,13 +126,11 @@
 		const bx = b.x + b.width / 2;
 		const by = b.y + b.height / 2;
 
-		// bounding box in GLOBAL coords
 		let x1 = Math.min(ax, bx);
 		let x2 = Math.max(ax, bx);
 		let y1 = Math.min(ay, by);
 		let y2 = Math.max(ay, by);
 
-		// --- Apply minimum thickness ------------------------------------
 		if (x2 - x1 < thickness) {
 			const mid = (ax + bx) / 2;
 			x1 = mid - thickness / 2;
@@ -90,7 +143,6 @@
 			y2 = mid + thickness / 2;
 		}
 
-		// --- rect relative to elRect ------------------------------------
 		const rect = {
 			x: x1 - viewportRect.x,
 			y: y1 - viewportRect.y,
@@ -98,160 +150,132 @@
 			height: y2 - y1
 		};
 
-		// --- convert A and B to LOCAL coords ----------------------------
 		const A = { x: ax - x1, y: ay - y1 };
 		const B = { x: bx - x1, y: by - y1 };
-
-		let d;
 		const midX = (A.x + B.x) / 2;
 		const midY = (A.y + B.y) / 2;
-		let mode = 'step';
+		const horizontal = Math.abs(ax - bx) > Math.abs(ay - by);
 
-		if (Math.abs(ax - bx) > Math.abs(ay - by)) {
-			if (mode == 'step') {
-				d = `M ${A.x} ${A.y}
-		     L ${midX} ${A.y}
-		     L ${midX} ${B.y}
-		     L ${B.x} ${B.y}`;
-			} else {
-				const cx1 = midX;
-				const cy1 = A.y;
-				const cx2 = midX;
-				const cy2 = B.y;
-				d = `M ${A.x} ${A.y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${B.x} ${B.y}`;
-			}
-		} else {
-			if (mode == 'step') {
-				d = `M ${A.x} ${A.y}
-		     L ${A.x} ${midY}
-		     L ${B.x} ${midY}
-		     L ${B.x} ${B.y}`;
-			} else {
-				const cx1 = A.x;
-				const cy1 = midY;
-				const cx2 = B.x;
-				const cy2 = midY;
-
-				d = `M ${A.x} ${A.y}
-		     C ${cx1} ${cy1}, ${cx2} ${cy2}, ${B.x} ${B.y}`;
-			}
+		if (mode === 'step') {
+			return {
+				rect,
+				d: horizontal
+					? `M ${A.x} ${A.y} L ${midX} ${A.y} L ${midX} ${B.y} L ${B.x} ${B.y}`
+					: `M ${A.x} ${A.y} L ${A.x} ${midY} L ${B.x} ${midY} L ${B.x} ${B.y}`
+			};
 		}
 
-		return { rect, d };
-	}
+		const d = horizontal
+			? `M ${A.x} ${A.y} C ${midX} ${A.y}, ${midX} ${B.y}, ${B.x} ${B.y}`
+			: `M ${A.x} ${A.y} C ${A.x} ${midY}, ${B.x} ${midY}, ${B.x} ${B.y}`;
 
-	let animationFrame: ReturnType<typeof requestAnimationFrame>;
-	const update = () => {
+		return { rect, d };
+	};
+
+	const updateRects = () => {
 		const rect = el.getBoundingClientRect();
 		scale = rect.width / el.offsetWidth || 1;
-		viewportRect = unscaleRect(el.getBoundingClientRect());
+		viewportRect = unscaleRect(rect);
 		for (const [id, { el }] of Object.entries(portRegistry)) {
 			portRegistry[id].rect = unscaleRect(el.getBoundingClientRect());
 		}
-		animationFrame = requestAnimationFrame(update);
+		animationFrame = requestAnimationFrame(updateRects);
 	};
 
-	const cancelGhost = () => {
-		fromPath = null;
-		toPath = null;
-	};
-
-	const mouseMove = (e: MouseEvent | TouchEvent) => {
-		let pageY;
-		let pageX;
-		if (e instanceof MouseEvent) {
-			pageX = e.pageX;
-			pageY = e.pageY;
-		} else {
-			e.preventDefault();
-			pageX = e.touches[0].pageX;
-			pageY = e.touches[0].pageY;
-		}
-		let dx = (pageX - cursorStartY) / scale;
-		let dy = (pageY - cursorStartX) / scale;
-		if (fromPath) {
-			moveGhost(dx, dy);
-		} else if (selectedNodes.length) {
-			moveNodes(dx, dy);
-		}
-
-		cursorStartY = pageX;
-		cursorStartX = pageY;
-	};
-
-	const cancelNodeMove = () => {
-		selectedNodes = [];
-	};
-
-	const moveNodes = (dx: number, dy: number) => {
-		if (!selectedNodes.length) return;
-		selectedNodes.forEach((n) => {
-			n.position.x += dx;
-			n.position.y += dy;
+	const applySelection = () => {
+		const bounds = selection;
+		nodeRegistry.forEach((dom, node) => {
+			const rect = unscaleRect(dom.getBoundingClientRect());
+			rect.x -= viewportRect.x;
+			rect.y -= viewportRect.y;
+			const intersects = !(
+				rect.x + rect.width <= bounds.x ||
+				rect.x >= bounds.x + bounds.width ||
+				rect.y + rect.height <= bounds.y ||
+				rect.y >= bounds.y + bounds.height
+			);
+			if (intersects) {
+				selectedNodes.add(node);
+			}
 		});
 	};
 
-	const mouseUp = (e: MouseEvent | TouchEvent) => {
-		cancelNodeMove();
-		cancelGhost();
+	const resetInteractionState = () => {
+		selecting = false;
+		fromPath = null;
+		toPath = null;
+		draggingNodes = false;
 	};
 
-	const moveGhost = (dx: number, dy: number) => {
-		ghostBounds.x += dx;
-		ghostBounds.y += dy;
+	const mouseDown = (e: MouseEvent | TouchEvent) => {
+		setCursorFromEvent(e);
+
+		if (e.shiftKey) {
+			const { x, y } = toViewportCoords(cursorStartX, cursorStartY);
+			selectionStartPoint.x = x;
+			selectionStartPoint.y = y;
+			selectionEndPoint.x = x;
+			selectionEndPoint.y = y;
+			selecting = true;
+		} else {
+			selectedNodes.clear();
+		}
 	};
 
-	onMount(() => {
-		viewportRect = el.getBoundingClientRect();
-		animationFrame = requestAnimationFrame(update);
-		window.addEventListener('mouseup', mouseUp);
-		window.addEventListener('mousemove', mouseMove);
-		return () => {
-			window.removeEventListener('mouseup', cancelGhost);
-			cancelAnimationFrame(animationFrame);
-		};
-	});
+	const mouseMove = (e: MouseEvent | TouchEvent) => {
+		const { x: clientX, y: clientY } = getClientPoint(e);
+		const dx = (clientX - cursorStartX) / scale;
+		const dy = (clientY - cursorStartY) / scale;
+		let prevent = false;
+		if (fromPath) {
+			ghostBounds.x += dx;
+			ghostBounds.y += dy;
+			prevent = true;
+		} else if (draggingNodes) {
+			prevent = true;
+			selectedNodes.forEach((n) => {
+				n.position.x += dx;
+				n.position.y += dy;
+			});
+		} else if (selecting) {
+			prevent = true;
+			selectionEndPoint.x += dx;
+			selectionEndPoint.y += dy;
+		}
 
-	const useHandle = (node: FlowNode) => (handle: FlowPort) => ({
-		onmousedown: (e: MouseEvent | TouchEvent) => {
+		if (prevent) {
+			e.preventDefault();
 			e.stopImmediatePropagation();
-			fromPath = [node, handle];
-			ghostBounds = unscaleRect(portRegistry[handle.id].el.getBoundingClientRect());
-		},
-		onmouseup: (e: MouseEvent | TouchEvent) => {
-			if (!fromPath) return;
-			const edge = onEdge(fromPath, [node, handle]);
-			if (edge) {
-				edges.push(edge);
+		}
+
+		cursorStartX = clientX;
+		cursorStartY = clientY;
+	};
+
+	const mouseUp = () => {
+		if (selecting) {
+			applySelection();
+			clearSelection = false;
+		} else {
+			clearSelection = true;
+		}
+		resetInteractionState();
+	};
+
+	const createNodeBindings = (node: FlowNode) => {
+		const startNodeDrag = (e: MouseEvent | TouchEvent) => {
+			e.stopImmediatePropagation();
+			setCursorFromEvent(e);
+			if (clearSelection && !e.shiftKey) {
+				selectedNodes.clear();
 			}
-		},
-		onmouseover: () => {
-			toPath = [node, handle];
-		},
-		onmouseout: () => {
-			toPath = null;
-		},
-		[createAttachmentKey()]: (el: HTMLElement) => {
-			portRegistry[handle.id] = {
-				el,
-				rect: el.getBoundingClientRect(),
-				node
-			};
-			return () => {
-				delete portRegistry[handle.id];
-			};
-		}
-	});
-
-	const createNodeBindings = (n: FlowNode) => {
-		function dragStart(e: MouseEvent | TouchEvent) {
-			e.stopImmediatePropagation();
-			selectedNodes = [n];
-		}
+			selectedNodes.add(node);
+			draggingNodes = true;
+		};
 
 		return {
 			get isDragging() {
-				return selectedNodes.includes(n);
+				return selectedNodes.has(node);
 			},
 			get activePortEndpoint() {
 				return fromPath;
@@ -259,15 +283,111 @@
 			get hoveredPortEndpoint() {
 				return toPath;
 			},
-			portBindings: useHandle(n),
+			portBindings: createPortBindings(node),
 			dragBindings: {
-				onmousedown: dragStart,
+				onmousedown: startNodeDrag,
+				ontouchstart: startNodeDrag,
 				get style() {
-					return `transform: translate(${n.position.x}px, ${n.position.y}px);`;
+					return `transform: translate(${node.position.x}px, ${node.position.y}px);`;
+				}
+			},
+			nodeBindings: {
+				[createAttachmentKey()]: (dom: HTMLElement) => {
+					nodeRegistry.set(node, dom);
+					return () => {
+						nodeRegistry.delete(node);
+					};
 				}
 			}
 		};
 	};
+
+	const createPortBindings = (node: FlowNode) => (handle: FlowPort) => {
+		const portStart = (e: MouseEvent | TouchEvent) => {
+			setCursorFromEvent(e);
+			e.stopImmediatePropagation();
+			const anchor = portRegistry[handle.id];
+			if (!anchor) return;
+			fromPath = [node, handle];
+			ghostBounds = unscaleRect(anchor.el.getBoundingClientRect());
+		};
+		const portEnd = (e: MouseEvent | TouchEvent) => {
+			if (!fromPath) return;
+			let target: PortEndpoint | undefined;
+			if (e instanceof TouchEvent) {
+				const { x, y } = getClientPoint(e, { preferChangedTouches: true });
+				const el = document.elementFromPoint(x, y);
+				let endpoint: PortAnchor | undefined;
+				for (const p in portRegistry) {
+					if (portRegistry[p].el === el) {
+						endpoint = portRegistry[p];
+						break;
+					}
+				}
+				if (!endpoint) return;
+				target = [endpoint.node, endpoint.port];
+			} else {
+				target = [node, handle];
+			}
+
+			const edge = target && onEdge(fromPath, target);
+			if (edge) {
+				edges.push(edge);
+			}
+		};
+
+		const portOver = () => {
+			toPath = [node, handle];
+		};
+		const portOut = () => {
+			toPath = null;
+		};
+		return {
+			onmousedown: portStart,
+			ontouchstart: portStart,
+			onmouseup: portEnd,
+			ontouchend: portEnd,
+			onmouseover: portOver,
+			onmouseout: portOut,
+			[createAttachmentKey()]: (el: HTMLElement) => {
+				portRegistry[handle.id] = {
+					el,
+					rect: el.getBoundingClientRect(),
+					node,
+					port: handle
+				};
+				return () => {
+					delete portRegistry[handle.id];
+				};
+			}
+		};
+	};
+
+	onMount(() => {
+		viewportRect = el.getBoundingClientRect();
+		animationFrame = requestAnimationFrame(updateRects);
+
+		window.addEventListener('mousedown', mouseDown);
+		window.addEventListener('touchstart', mouseDown);
+
+		window.addEventListener('mouseup', mouseUp);
+		window.addEventListener('touchend', mouseUp);
+
+		window.addEventListener('mousemove', mouseMove, { capture: true });
+		window.addEventListener('touchmove', mouseMove, { passive: false });
+		return () => {
+			window.removeEventListener('mousedown', mouseDown);
+			window.removeEventListener('touchstart', mouseDown);
+
+			window.removeEventListener('mouseup', mouseUp);
+			window.removeEventListener('touchend', mouseUp);
+
+			window.removeEventListener('mousemove', mouseMove);
+			window.removeEventListener('touchmove', mouseMove);
+
+			cancelAnimationFrame(animationFrame);
+		};
+	});
 </script>
 
 {#snippet DefaultEdge(_: FlowEdge, a: PortAnchor, b: PortAnchor)}
@@ -288,7 +408,12 @@
 	<!-- 
 		The default implementation doesn't need any of this but a custom one might
 	-->
-	{@render DefaultEdge(null!, sourceBounds, { rect: cursorBounds, el: null!, node: null! })}
+	{@render DefaultEdge(null!, sourceBounds, {
+		rect: cursorBounds,
+		el: null!,
+		node: null!,
+		port: null!
+	})}
 {/snippet}
 
 <div class="relative h-90" bind:this={el}>
@@ -306,5 +431,14 @@
 
 	{#if fromPath && portRegistry[fromPath[1].id]}
 		{@render (GhostEdge || DefaultGhostEdge)(portRegistry[fromPath[1].id], ghostBounds)}
+	{/if}
+
+	{#if selecting}
+		<div
+			class="absolute bg-blue-500/35"
+			style:transform="translate({selection.x}px, {selection.y}px)"
+			style:width="{selection.width}px"
+			style:height="{selection.height}px"
+		></div>
 	{/if}
 </div>
