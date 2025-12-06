@@ -1,0 +1,306 @@
+<script lang="ts">
+	import Flow, { type FlowApi } from '$lib/Flow.svelte';
+	import Viewport from '$lib/Viewport.svelte';
+	import {
+		createHighlighter,
+		type HighlighterGeneric,
+		type BundledLanguage,
+		type BundledTheme
+	} from 'shiki';
+	import { onMount } from 'svelte';
+
+	type Node = (typeof nodes)[0];
+	type Port = Node['ports'][0];
+	type Edge = { from: string; to: string };
+	type Api = FlowApi<Node, Edge, Port>;
+
+	let highlighter: HighlighterGeneric<BundledLanguage, BundledTheme> = $state(null!);
+
+	let api:Api = $state()!;
+	let nodes = $state([
+		{
+			ports: [
+				{ id: 'a', type: 'input' },
+				{ id: 'b', type: 'output' }
+			],
+			position: { x: 300, y: 120 },
+			text: 'Some text'
+		},
+		{
+			ports: [
+				{ id: 'c', type: 'input' },
+				{ id: 'd', type: 'output' }
+			],
+			position: { x: 20, y: 20 },
+			text: 'Some other text'
+		}
+	]);
+
+	let edges: Edge[] = $state([]);
+	const onEdge = (
+		[nodeFrom, { id: from, type: typeFrom }]: [Node, Port],
+		[nodeTo, { id: to, type: typeTo }]: [Node, Port]
+	): Edge | undefined => {
+		// Don't connect to yourself
+		if (nodeFrom == nodeTo) return undefined;
+		// Don't connect input -> input
+		if (typeFrom == typeTo) return undefined;
+		// Only one connection per node
+		const exists = edges.some(
+			(e) => (e.from == from && e.to === to) || (e.from == to && e.to === from)
+		);
+		if (exists) return undefined;
+		// You get the idea whatever connecting logic can be applied
+		// maybe provide loop detection/ one connection helpers
+		return {
+			from,
+			to
+		};
+	};
+
+	onMount(() => {
+		createHighlighter({
+			themes: ['vitesse-light', 'vitesse-dark'],
+			langs: ['json']
+		}).then((h) => {
+			highlighter = h;
+		});
+	});
+	const code = $derived.by(() => {
+		if (!highlighter) return ['', ''];
+		return [
+			highlighter.codeToHtml(JSON.stringify(edges, null, 4), {
+				lang: 'json',
+				themes: { light: 'vitesse-light', dark: 'vitesse-dark' }
+			}),
+			highlighter.codeToHtml(
+				JSON.stringify(
+					nodes.map((e) => ({ text: e.text })),
+					null,
+					4
+				),
+				{
+					lang: 'json',
+					themes: { light: 'vitesse-light', dark: 'vitesse-dark' }
+				}
+			)
+		];
+	});
+</script>
+
+# Flow
+
+Flow tracks dragging, selection, and port hit-testing while you render the nodes, ports, and edges. Wrap it in [`Viewport`](./viewport) if you want panning and zoom on the whole canvas.
+
+- Flow handles: mouse/touch listeners, marquee selection, port hit-testing, group dragging, and a default edge renderer.
+- You handle: node layout and visuals, unique port IDs, connection rules via `validate-edge`, and any side effects when nodes/edges change.
+- `Node`, `Edge`, and `Port` are generic.
+
+<Viewport class="rounded-md border border-(--trioxide_neutral-7)" pattern="square" pan-with-mouse>
+	<Flow
+		class="h-100 outline-none"
+		bind:nodes
+		bind:edges
+		bind:api
+		validate-edge={onEdge}
+		edge-type="smooth"
+		box-selection-props={{class:"border border-(--trioxide_highlight-10) bg-(--trioxide_highlight-a3)"}}
+		default-edge-path-props={(_, s) => ({
+			stroke: `${s ? 'var(--trioxide_highlight-10)' : 'var(--trioxide_neutral-10)'}`,
+			'stroke-linecap': 'round',
+			'stroke-width': 3
+		})}
+		tabindex={-1}
+		onkeyup={(e) => {
+			if (e.key != 'Backspace') return;
+			api.selectedNodes.forEach((n) => {
+				api.removeNode(n);
+			});
+			api.selectedEdges.forEach((e) => {
+				api.removeEdge(e);
+			});
+		}}
+	>
+		{#snippet Node({ node: n, dragBindings, portBindings, nodeBindings })}
+			{@const isDragging = api.selectedNodes.has(n)}
+			<div
+				class="absolute inline-flex rounded-sm border bg-(--trioxide_neutral-2) p-2 select-none {isDragging
+					? 'border-(--trioxide_highlight-10)'
+					: 'border-(--trioxide_neutral-7)'}"
+				{...dragBindings}
+				{...nodeBindings}
+			>
+				<div class="flex flex-col justify-center">
+					{#each n.ports.filter((e) => e.type == 'input') as s}
+						<div
+							class="z-10 h-4 w-4 rounded-full border {api.activePort?.[1] == s
+								? 'border-(--trioxide_highlight-10)'
+								: 'border-(--trioxide_neutral-10)'} {edges.some(
+								(e) => e.from == s.id || e.to === s.id
+							)
+								? 'bg-(--trioxide_neutral-10)'
+								: 'bg-(--trioxide_neutral-5)'}"
+							{...portBindings(s)}
+						></div>
+					{/each}
+				</div>
+				<div class="flex flex-col gap-4 p-2">
+					<button
+						class="button self-end text-red-10!"
+						onclick={() => api.removeNode(n)}
+						aria-label="Delete Node"
+					>
+						<i class="ri-delete-bin-2-line"></i>
+					</button>
+					<input
+						type="text"
+						class=" text-center outline-0"
+						bind:value={n.text}
+						onkeyup={(e) => e.stopPropagation()}
+					/>
+				</div>
+				<div class=" flex flex-col justify-center">
+					{#each n.ports.filter((e) => e.type == 'output') as s}
+						<div
+							class="z-10 h-4 w-4 rounded-full border bg-(--trioxide_neutral-5) {api
+								.activePort?.[1] == s
+								? 'border-(--trioxide_highlight-10)'
+								: 'border-(--trioxide_neutral-10)'} {edges.some(
+								(e) => e.from == s.id || e.to === s.id
+							)
+								? 'bg-(--trioxide_neutral-10)'
+								: 'bg-(--trioxide_neutral-5)'}"
+							{...portBindings(s)}
+						></div>
+					{/each}
+				</div>
+			</div>
+		{/snippet}
+	</Flow>
+</Viewport>
+
+<p class="mt-2 text-sm text-(--trioxide_neutral-11)">
+	Edit node text, drag ports to connect, Shift+drag to box-select, and press Backspace to delete the current selection.
+</p>
+
+### Nodes state
+
+{#await code then [_, nodesHTML]}
+{@html nodesHTML}
+{/await}
+
+### Edges state
+
+{#await code then [edgesHTML, _]}
+{@html edgesHTML}
+{/await}
+
+---
+
+## Usage
+
+```svelte
+<script lang="ts">
+	import { Flow, type FlowApi } from '@obelus/trioxide';
+
+	type Port = { id: string; side: 'in' | 'out' };
+	type Node = { title: string; ports: Port[]; position: { x: number; y: number } };
+	type Edge = { from: string; to: string };
+
+	let nodes: Node[] = $state([
+		{
+			title: 'Input',
+			ports: [{ id: 'input', side: 'out' }],
+			position: { x: 40, y: 40 }
+		},
+		{
+			title: 'Output',
+			ports: [{ id: 'output', side: 'in' }],
+			position: { x: 280, y: 200 }
+		}
+	]);
+
+	let edges: Edge[] = $state([]);
+	let api: FlowApi<Node, Edge, Port> = $state()!;
+
+	const validateEdge = ([fromNode, fromPort], [toNode, toPort]) => {
+		if (fromNode === toNode) return;
+		if (fromPort.side === toPort.side) return;
+		return { from: fromPort.id, to: toPort.id };
+	};
+</script>
+
+<Flow
+	bind:nodes
+	bind:edges
+	bind:api
+	validate-edge={validateEdge}
+	edge-type="smooth"
+	default-edge-path-props={(_, isSelected) => ({
+		stroke: isSelected ? 'gray' : 'blue',
+		'stroke-linecap': 'round',
+		'stroke-width': 3
+	})}
+>
+	{#snippet Node({ node, dragBindings, portBindings, nodeBindings })}
+		<article class="" {...dragBindings} {...nodeBindings}>
+			<div class="ports">
+				{#each node.ports as port}
+					<button class="" {...portBindings(port)} aria-label={`Connect ${port.id}`}></button>
+				{/each}
+			</div>
+			<span class="text-sm">{node.title}</span>
+		</article>
+	{/snippet}
+</Flow>
+```
+
+`nodes` and `edges` are mutated in place (positions update on drag; edges are pushed and spliced), so keep them in a `$state` store or another mutable data structure.
+
+---
+
+## Props
+
+- `nodes` (bind): array of nodes with `position` and `ports`; port `id`s must be unique across the entire graph.
+- `edges` (bind): `{ from: string; to: string }[]` array; Flow mutates it when connections are created or removed.
+- `validate-edge(from, to)`: required; return an edge object to accept the connection or `undefined` to reject (self-links, direction checks, etc.).
+- `Node`: required snippet receiving `{ node, dragBindings, portBindings, nodeBindings }`; render your node and spread the bindings.
+- `'edge-type'`: `'smooth' | 'step'` (default `'smooth'`) for the built-in edge path generator.
+- `default-edge-path-props(edge, isSelected)`: optional attributes merged into the default `<path>` (stroke color, width, dash).
+- `Edge`: optional snippet `(edge, fromAnchor, toAnchor, bindings)`; use `bindings.isSelected` and `bindings.edgeHandlers` to keep selection working.
+- `GhostEdge`: optional snippet `(fromAnchor, cursorBounds)` to render the live preview while dragging from a port.
+- `box-selection-props`: attributes forwarded to the selection box element (e.g., custom border/fill).
+- `bind:api`: optional `FlowApi` with selection sets and removal helpers for keyboard shortcuts or custom tooling.
+- `readonly`: boolean; when true, disables dragging, selection, and edge creation.
+- Rest props are forwarded to the root `<div>` (e.g., classes, `tabindex`, aria labels).
+
+---
+
+## Node bindings
+
+- `dragBindings`: spread onto the node (or a child) to make it the drag handle.
+- `portBindings(port)`: spread onto each port element so Flow can register hit areas and finish/confirm connections.
+- `nodeBindings`: spread onto the node container to register its DOM rect for box selection and collision checks.
+- `node`: your original node object; mutate `node.position` yourself if you need external layout logic.
+
+---
+
+## Edge rendering
+
+- The default renderer draws between the centers of the two port bounding boxes using the chosen `edge-type`.
+- Provide `Edge` to draw custom paths, labels, or hit areas; call `bindings.edgeHandlers` on the clickable layer to enable selection.
+- Provide `GhostEdge` to customize the edge shown while the user is dragging from a port.
+- Use `defaultEdgePathProps` to tweak stroke color/width without replacing the renderer.
+
+---
+
+## API and behavior
+
+- `api.selectedNodes` / `api.selectedEdges`: live `Set`s describing the current selection.
+- `api.insertNodeAt(node, clientX, clientY)`: place a node at the given client coordinates and append it to `nodes`.
+- `api.removeNode(node)` removes the node and any incident edges; `api.removeEdge(edge)` removes a single edge.
+- `api.activePort` reports the port currently being dragged from; `api.selecting` tells you when the marquee is active.
+- Hold `Shift` and drag on the canvas to draw a selection box; click edges to select them (hold `Shift` for multi-select); drag selected nodes as a group.
+- Pointer listeners are attached to `window` so drags continue off-canvas
+
+---

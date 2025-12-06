@@ -45,6 +45,93 @@ html {
 	--tw-prose-invert-td-borders: var(--color-pink-700);
 }
 
+:root.trioxide_light {
+	--orange-1: #fefcfb;
+	--orange-2: #fff7ed;
+	--orange-3: #ffefd6;
+	--orange-4: #ffdfb5;
+	--orange-5: #ffd19a;
+	--orange-6: #ffc182;
+	--orange-7: #f5ae73;
+	--orange-8: #ec9455;
+	--orange-9: #f76b15;
+	--orange-10: #ef5f00;
+	--orange-11: #cc4e00;
+	--orange-12: #582d1d;
+
+	--red-1: #fffcfc;
+	--red-2: #fff7f7;
+	--red-3: #feebec;
+	--red-4: #ffdbdc;
+	--red-5: #ffcdce;
+	--red-6: #fdbdbe;
+	--red-7: #f4a9aa;
+	--red-8: #eb8e90;
+	--red-9: #e5484d;
+	--red-10: #dc3e42;
+	--red-11: #ce2c31;
+	--red-12: #641723;
+}
+
+:root.trioxide_dark {
+	--orange-1: #17120e;
+	--orange-2: #1e160f;
+	--orange-3: #331e0b;
+	--orange-4: #462100;
+	--orange-5: #562800;
+	--orange-6: #66350c;
+	--orange-7: #7e451d;
+	--orange-8: #a35829;
+	--orange-9: #f76b15;
+	--orange-10: #ff801f;
+	--orange-11: #ffa057;
+	--orange-12: #ffe0c2;
+
+	--red-1: #191111;
+	--red-2: #201314;
+	--red-3: #3b1219;
+	--red-4: #500f1c;
+	--red-5: #611623;
+	--red-6: #72232d;
+	--red-7: #8c333a;
+	--red-8: #b54548;
+	--red-9: #e5484d;
+	--red-10: #ec5d5e;
+	--red-11: #ff9592;
+	--red-12: #ffd1d9;
+}
+
+@theme inline {
+	--color-*: initial;
+	--color-black: #000;
+
+	--color-orange-1: var(--orange-1);
+	--color-orange-2: var(--orange-2);
+	--color-orange-3: var(--orange-3);
+	--color-orange-4: var(--orange-4);
+	--color-orange-5: var(--orange-5);
+	--color-orange-6: var(--orange-6);
+	--color-orange-7: var(--orange-7);
+	--color-orange-8: var(--orange-8);
+	--color-orange-9: var(--orange-9);
+	--color-orange-10: var(--orange-10);
+	--color-orange-11: var(--orange-11);
+	--color-orange-12: var(--orange-12);
+
+	--color-red-1: var(--red-1);
+	--color-red-2: var(--red-2);
+	--color-red-3: var(--red-3);
+	--color-red-4: var(--red-4);
+	--color-red-5: var(--red-5);
+	--color-red-6: var(--red-6);
+	--color-red-7: var(--red-7);
+	--color-red-8: var(--red-8);
+	--color-red-9: var(--red-9);
+	--color-red-10: var(--red-10);
+	--color-red-11: var(--red-11);
+	--color-red-12: var(--red-12);
+}
+
 :root.trioxide_dark .shiki,
 :root.trioxide_dark .shiki span {
 	color: var(--shiki-dark) !important;
@@ -74,6 +161,13 @@ html {
 }
 
 .button {
+	@apply inline-flex items-center justify-center rounded-md border border-(--trioxide_neutral-5) bg-(--trioxide_neutral-3) px-3 text-(--trioxide_neutral-11);
+	&:hover {
+		@apply bg-(--trioxide_neutral-5) text-(--trioxide_neutral-12);
+	}
+}
+
+.tag {
 	@apply inline-flex items-center justify-center rounded-md border border-(--trioxide_neutral-5) bg-(--trioxide_neutral-3) px-3 text-(--trioxide_neutral-11);
 	&:hover {
 		@apply bg-(--trioxide_neutral-5) text-(--trioxide_neutral-12);

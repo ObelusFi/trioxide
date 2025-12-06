@@ -1,14 +1,19 @@
+<script lang="ts" module>
+	export type FlowApi<FlowNode, FlowEdge, FlowPort> = {
+		readonly selectedNodes: Set<FlowNode>;
+		readonly selectedEdges: Set<FlowEdge>;
+		readonly activePort?: [FlowNode, FlowPort];
+		readonly selecting: boolean;
+		insertNodeAt(n: FlowNode, clientX: number, clientY: number): FlowNode;
+		removeNode(n: FlowNode): boolean;
+		removeEdge(e: FlowEdge): boolean;
+	};
+</script>
+
 <script lang="ts">
-	/**
-	 * TODO:
-	 *  - figure out a better api for custom arrows
-	 *  - edge selection
-	 *  - touch events
-	 *
-	 *
-	 */
-	import { onMount, type Snippet } from 'svelte';
+	import { onMount, tick, type Snippet } from 'svelte';
 	import { createAttachmentKey } from 'svelte/attachments';
+	import type { HTMLAttributes } from 'svelte/elements';
 	import { SvelteSet } from 'svelte/reactivity';
 
 	type FlowPort = $$Generic<{ id: string }>;
@@ -22,28 +27,50 @@
 		port: FlowPort;
 	};
 
-	type EdgeType = 'step' | 'smooth' | 'line';
+	type EdgeBindingContext = {
+		get isSelected(): boolean;
+		edgeHandlers: {
+			onmousedown: (event: MouseEvent) => void;
+			ontouchstart: (event: TouchEvent) => void;
+		};
+	};
+
+	type EdgeType = 'step' | 'smooth';
 
 	let {
 		nodes = $bindable(),
 		edges = $bindable(),
+		api = $bindable(),
+		readonly = false,
 		Node,
 		Edge,
 		GhostEdge,
-		onEdge,
-		'edge-type': mode = 'smooth'
+		'validate-edge': validateEdge,
+		'box-selection-props': boxSelectionProps,
+		'default-edge-path-props': defaultEdgePathProps,
+		'edge-type': mode = 'smooth',
+		...rest
 	}: {
 		nodes: FlowNode[];
 		edges: FlowEdge[];
+		'validate-edge': (from: PortEndpoint, to: PortEndpoint) => FlowEdge | undefined;
+		Node: Snippet<[bindings: ReturnType<typeof createNodeBindings>]>;
 		'edge-type'?: EdgeType;
-		onEdge: (from: PortEndpoint, to: PortEndpoint) => FlowEdge | undefined;
-		Node: Snippet<[node: FlowNode, bindings: ReturnType<typeof createNodeBindings>]>;
-		Edge?: Snippet<[edge: FlowEdge, from: PortAnchor, to: PortAnchor]>;
+		'default-edge-path-props'?: (
+			e: FlowEdge,
+			isSelected: boolean
+		) => HTMLAttributes<SVGPathElement>;
+		readonly?: boolean;
+		Edge?: Snippet<
+			[edge: FlowEdge, from: PortAnchor, to: PortAnchor, bindings: EdgeBindingContext]
+		>;
 		GhostEdge?: Snippet<[from: PortAnchor, to: DOMRect]>;
-	} = $props();
+		'box-selection-props'?: HTMLAttributes<HTMLDivElement>;
+		api?: FlowApi<FlowNode, FlowEdge, FlowPort>;
+	} & HTMLAttributes<HTMLDivElement> = $props();
 
 	const drect = (x = 0, y = 0, w = 0, h = 0) =>
-		({ x, y, width: w, height: h, bottom: 0, left: 0, right: 0, top: 0 } as DOMRect);
+		({ x, y, width: w, height: h, bottom: 0, left: 0, right: 0, top: 0 }) as DOMRect;
 
 	let viewportRect: DOMRect = drect();
 	let scale = 1;
@@ -54,9 +81,9 @@
 	let draggingNodes = false;
 	let clearSelection = true;
 
-	let fromPath: PortEndpoint | null = $state(null);
-	let toPath: PortEndpoint | null = $state(null);
+	let fromPath: PortEndpoint | undefined = $state(undefined);
 	let selectedNodes: Set<FlowNode> = new SvelteSet();
+	let selectedEdges: Set<FlowEdge> = new SvelteSet();
 	let selecting = $state(false);
 	let animationFrame: ReturnType<typeof requestAnimationFrame>;
 
@@ -79,7 +106,7 @@
 			y: r.y / scale,
 			width: r.width / scale,
 			height: r.height / scale
-		} as DOMRect);
+		}) as DOMRect;
 
 	const toViewportCoords = (clientX: number, clientY: number) => ({
 		x: clientX / scale - viewportRect.x,
@@ -90,19 +117,17 @@
 		event: MouseEvent | TouchEvent,
 		{ preferChangedTouches = false } = {}
 	) => {
-		if (event instanceof TouchEvent) {
-			const touch = preferChangedTouches
-				? event.changedTouches[0] || event.touches[0]
-				: event.touches[0] || event.changedTouches[0];
-
-			if (touch) {
-				return { x: touch.clientX, y: touch.clientY };
-			}
+		if (event instanceof MouseEvent) {
+			return {
+				x: (event as MouseEvent).clientX ?? cursorStartX,
+				y: (event as MouseEvent).clientY ?? cursorStartY
+			};
 		}
-		return {
-			x: (event as MouseEvent).clientX ?? cursorStartX,
-			y: (event as MouseEvent).clientY ?? cursorStartY
-		};
+		const touch = preferChangedTouches
+			? event.changedTouches[0] || event.touches[0]
+			: event.touches[0] || event.changedTouches[0];
+
+		return { x: touch.clientX, y: touch.clientY };
 	};
 
 	const setCursorFromEvent = (event: MouseEvent | TouchEvent, preferChangedTouches = false) => {
@@ -183,6 +208,7 @@
 	};
 
 	const applySelection = () => {
+		selectedEdges.clear();
 		const bounds = selection;
 		nodeRegistry.forEach((dom, node) => {
 			const rect = unscaleRect(dom.getBoundingClientRect());
@@ -200,14 +226,20 @@
 		});
 	};
 
+	const clearSelections = () => {
+		selectedNodes.clear();
+		selectedEdges.clear();
+		clearSelection = true;
+	};
+
 	const resetInteractionState = () => {
 		selecting = false;
-		fromPath = null;
-		toPath = null;
+		fromPath = undefined;
 		draggingNodes = false;
 	};
 
 	const mouseDown = (e: MouseEvent | TouchEvent) => {
+		if (readonly) return;
 		setCursorFromEvent(e);
 
 		if (e.shiftKey) {
@@ -218,11 +250,12 @@
 			selectionEndPoint.y = y;
 			selecting = true;
 		} else {
-			selectedNodes.clear();
+			clearSelections();
 		}
 	};
 
 	const mouseMove = (e: MouseEvent | TouchEvent) => {
+		if (readonly) return;
 		const { x: clientX, y: clientY } = getClientPoint(e);
 		const dx = (clientX - cursorStartX) / scale;
 		const dy = (clientY - cursorStartY) / scale;
@@ -253,6 +286,7 @@
 	};
 
 	const mouseUp = () => {
+		if (readonly) return;
 		if (selecting) {
 			applySelection();
 			clearSelection = false;
@@ -262,10 +296,34 @@
 		resetInteractionState();
 	};
 
+	const selectEdge = (edge: FlowEdge, event: MouseEvent | TouchEvent) => {
+		if (readonly) return;
+		event.stopImmediatePropagation();
+		event.preventDefault();
+		if (!event.shiftKey) {
+			clearSelections();
+		}
+		selectedEdges.add(edge);
+	};
+
+	const createEdgeBindings = (edge: FlowEdge): EdgeBindingContext => ({
+		get isSelected() {
+			return selectedEdges.has(edge);
+		},
+		edgeHandlers: {
+			onmousedown: (event: MouseEvent) => selectEdge(edge, event),
+			ontouchstart: (event: TouchEvent) => selectEdge(edge, event)
+		}
+	});
+
 	const createNodeBindings = (node: FlowNode) => {
 		const startNodeDrag = (e: MouseEvent | TouchEvent) => {
+			if (readonly) return;
 			e.stopImmediatePropagation();
 			setCursorFromEvent(e);
+			if (!e.shiftKey) {
+				selectedEdges.clear();
+			}
 			if (clearSelection && !e.shiftKey) {
 				selectedNodes.clear();
 			}
@@ -274,15 +332,7 @@
 		};
 
 		return {
-			get isDragging() {
-				return selectedNodes.has(node);
-			},
-			get activePortEndpoint() {
-				return fromPath;
-			},
-			get hoveredPortEndpoint() {
-				return toPath;
-			},
+			node,
 			portBindings: createPortBindings(node),
 			dragBindings: {
 				onmousedown: startNodeDrag,
@@ -304,6 +354,7 @@
 
 	const createPortBindings = (node: FlowNode) => (handle: FlowPort) => {
 		const portStart = (e: MouseEvent | TouchEvent) => {
+			if (readonly) return;
 			setCursorFromEvent(e);
 			e.stopImmediatePropagation();
 			const anchor = portRegistry[handle.id];
@@ -312,9 +363,12 @@
 			ghostBounds = unscaleRect(anchor.el.getBoundingClientRect());
 		};
 		const portEnd = (e: MouseEvent | TouchEvent) => {
+			if (readonly) return;
 			if (!fromPath) return;
 			let target: PortEndpoint | undefined;
-			if (e instanceof TouchEvent) {
+			if (e instanceof MouseEvent) {
+				target = [node, handle];
+			} else {
 				const { x, y } = getClientPoint(e, { preferChangedTouches: true });
 				const el = document.elementFromPoint(x, y);
 				let endpoint: PortAnchor | undefined;
@@ -326,29 +380,19 @@
 				}
 				if (!endpoint) return;
 				target = [endpoint.node, endpoint.port];
-			} else {
-				target = [node, handle];
 			}
 
-			const edge = target && onEdge(fromPath, target);
+			const edge = target && validateEdge(fromPath, target);
 			if (edge) {
 				edges.push(edge);
 			}
 		};
 
-		const portOver = () => {
-			toPath = [node, handle];
-		};
-		const portOut = () => {
-			toPath = null;
-		};
 		return {
 			onmousedown: portStart,
 			ontouchstart: portStart,
 			onmouseup: portEnd,
 			ontouchend: portEnd,
-			onmouseover: portOver,
-			onmouseout: portOut,
 			[createAttachmentKey()]: (el: HTMLElement) => {
 				portRegistry[handle.id] = {
 					el,
@@ -363,6 +407,45 @@
 		};
 	};
 
+	/// bind the api
+	api = {
+		insertNodeAt(n: FlowNode, clientX: number, clientY: number) {
+			const { x, y } = toViewportCoords(clientX, clientY);
+			n.position.x = x;
+			n.position.y = y;
+			nodes.push(n);
+			return n;
+		},
+		removeNode(n: FlowNode) {
+			const e = new Set(
+				n.ports
+					.map((p) => edges.find((e) => e.from == p.id || e.to == p.id))
+					.filter(Boolean) as FlowEdge[]
+			);
+			for (let i = edges.length - 1; i >= 0; i--) {
+				if (e.has(edges[i])) {
+					edges.splice(i, 1);
+				}
+			}
+			return nodes.splice(nodes.indexOf(n), 1).length == 1;
+		},
+		removeEdge(e: FlowEdge) {
+			return edges.splice(edges.indexOf(e), 1).length == 1;
+		},
+		get activePort() {
+			return fromPath;
+		},
+		get selectedEdges() {
+			return selectedEdges;
+		},
+		get selectedNodes() {
+			return selectedNodes;
+		},
+		get selecting() {
+			return selecting;
+		}
+	} satisfies FlowApi<FlowNode, FlowEdge, FlowPort>;
+
 	onMount(() => {
 		viewportRect = el.getBoundingClientRect();
 		animationFrame = requestAnimationFrame(updateRects);
@@ -375,6 +458,7 @@
 
 		window.addEventListener('mousemove', mouseMove, { capture: true });
 		window.addEventListener('touchmove', mouseMove, { passive: false });
+
 		return () => {
 			window.removeEventListener('mousedown', mouseDown);
 			window.removeEventListener('touchstart', mouseDown);
@@ -390,17 +474,33 @@
 	});
 </script>
 
-{#snippet DefaultEdge(_: FlowEdge, a: PortAnchor, b: PortAnchor)}
+{#snippet DefaultEdge(edge: FlowEdge, a: PortAnchor, b: PortAnchor, bindings: EdgeBindingContext)}
 	{@const { rect, d } = makeStepArrow(a.rect, b.rect)}
+	{@const edgeHandlers = bindings?.edgeHandlers || {}}
 	<svg
-		class="pointer-events-none absolute overflow-visible"
+		class="absolute overflow-visible"
 		style="
 			width: {rect.width}px;
 			height: {rect.height}px;
 			transform:translate({rect.x}px, {rect.y}px);
+			pointer-events:none;
 		"
 	>
-		<path {d} stroke="red" fill="none" stroke-width="2" />
+		<path
+			{d}
+			fill="none"
+			stroke-width="1"
+			style:pointer-events="none"
+			{...defaultEdgePathProps?.(edge, bindings?.isSelected)}
+		/>
+		<path
+			{d}
+			stroke="transparent"
+			fill="none"
+			stroke-width="10"
+			style:pointer-events={bindings ? 'stroke' : 'none'}
+			{...edgeHandlers}
+		/>
 	</svg>
 {/snippet}
 
@@ -408,37 +508,47 @@
 	<!-- 
 		The default implementation doesn't need any of this but a custom one might
 	-->
-	{@render DefaultEdge(null!, sourceBounds, {
-		rect: cursorBounds,
-		el: null!,
-		node: null!,
-		port: null!
-	})}
+	{@render DefaultEdge(
+		null!,
+		sourceBounds,
+		{
+			rect: cursorBounds,
+			el: null!,
+			node: null!,
+			port: null!
+		},
+		null!
+	)}
 {/snippet}
 
-<div class="relative h-90" bind:this={el}>
-	{#each nodes as node}
-		{@render Node(node, createNodeBindings(node))}
-	{/each}
+<div bind:this={el} {...rest} style:position="relative">
+	<!-- Wait for the api to be ready -->
+	{#await tick() then _}
+		{#each nodes as node}
+			{@render Node(createNodeBindings(node))}
+		{/each}
 
-	{#each edges as e}
-		{@const a = portRegistry[e.from]}
-		{@const b = portRegistry[e.to]}
-		{#if a && b}
-			{@render (Edge || DefaultEdge)(e, a, b)}
+		{#each edges as e}
+			{@const a = portRegistry[e.from]}
+			{@const b = portRegistry[e.to]}
+			{@const edgeBindings = createEdgeBindings(e)}
+			{#if a && b}
+				{@render (Edge || DefaultEdge)(e, a, b, edgeBindings)}
+			{/if}
+		{/each}
+
+		{#if fromPath && portRegistry[fromPath[1].id]}
+			{@render (GhostEdge || DefaultGhostEdge)(portRegistry[fromPath[1].id], ghostBounds)}
 		{/if}
-	{/each}
 
-	{#if fromPath && portRegistry[fromPath[1].id]}
-		{@render (GhostEdge || DefaultGhostEdge)(portRegistry[fromPath[1].id], ghostBounds)}
-	{/if}
-
-	{#if selecting}
-		<div
-			class="absolute bg-blue-500/35"
-			style:transform="translate({selection.x}px, {selection.y}px)"
-			style:width="{selection.width}px"
-			style:height="{selection.height}px"
-		></div>
-	{/if}
+		{#if selecting}
+			<div
+				style:position="absolute"
+				style:transform="translate({selection.x}px, {selection.y}px)"
+				style:width="{selection.width}px"
+				style:height="{selection.height}px"
+				{...boxSelectionProps}
+			></div>
+		{/if}
+	{/await}
 </div>
