@@ -1,3 +1,14 @@
+## v0.4.2 - 2025-12-06
+
+- chore: add an edge
+- chore: move to SvelteHTMLElements type
+- feat: add edge selection to flow, and api
+- feat: touch support and refacto
+- fix: add tocuh support
+- feat: make flow generic
+- feat: add flow draft 1
+- feat: add viewport
+
 ## v0.4.1 - 2025-12-04
 
 - feat: pass node to panel components
