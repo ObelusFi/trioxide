@@ -300,7 +300,6 @@
 	const selectEdge = (edge: FlowEdge, event: MouseEvent | TouchEvent) => {
 		if (readonly) return;
 		event.stopImmediatePropagation();
-		event.preventDefault();
 		if (!event.shiftKey) {
 			clearSelections();
 		}

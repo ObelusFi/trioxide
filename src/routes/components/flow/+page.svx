@@ -112,6 +112,7 @@ Flow tracks dragging, selection, and port hit-testing while you render the nodes
 		})}
 		tabindex={-1}
 		onkeyup={(e) => {
+			console.log(e);
 			if (e.key != 'Backspace') return;
 			api.selectedNodes.forEach((n) => {
 				api.removeNode(n);

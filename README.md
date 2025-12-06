@@ -24,22 +24,4 @@ npm i @obelusfi/trioxide
 
 - Work in progress; APIs may shift before a stable release.
 
-## Components
-
-- ContextMenu
-- Docker
-- Swappable
-- Kbd
-
-## TODO
-
-- [x] ContextMenu
-- [x] Docker
-- [x] Swappable
-- [x] Kbd
-- [x] Calendar
-- [x] Tag input
-- [x] Autocomplete
-- [x] Viewport
-
 Docs and demos: https://trioxide.obelus.fi
