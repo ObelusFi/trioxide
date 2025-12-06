@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
-	import type { HTMLAttributes } from 'svelte/elements';
+	import type { SvelteHTMLElements } from 'svelte/elements';
 
 	let {
 		children,
@@ -25,7 +25,7 @@
 		'pattern-color'?: string;
 		pattern?: 'none' | 'square' | 'circle';
 		'pattern-size'?: (zoom: number) => number;
-	} & HTMLAttributes<HTMLDivElement> = $props();
+	} & SvelteHTMLElements['div'] = $props();
 
 	let wrapper: HTMLDivElement;
 	let isPanning = false;

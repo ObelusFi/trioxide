@@ -1,14 +1,14 @@
 <script lang="ts" module>
 	import type { Snippet } from 'svelte';
 	import { createAttachmentKey, type Attachment } from 'svelte/attachments';
-	import type { HTMLAttributes, HTMLButtonAttributes } from 'svelte/elements';
+	import type { SvelteHTMLElements } from 'svelte/elements';
 
 	// Base menu types
 	export type MenuItemButton = {
 		type: 'button';
 		content: Snippet | string;
 		action: (item: MenuItem) => void;
-		props?: HTMLButtonAttributes;
+		props?: SvelteHTMLElements['button'];
 	};
 
 	type MenuItemButtonInternal = MenuItemButton & {
@@ -19,7 +19,7 @@
 	export type MenuItemLabel = {
 		type: 'label';
 		content: Snippet | string;
-		props?: HTMLAttributes<HTMLDivElement>;
+		props?: SvelteHTMLElements['div'];
 	};
 
 	export type MenuItemSeparator = {
@@ -31,7 +31,7 @@
 		type: 'submenu';
 		content: Snippet | string;
 		menu: MenuInternal;
-		props?: HTMLButtonAttributes;
+		props?: SvelteHTMLElements['button'];
 	};
 
 	type MenuItemSubmenuInternal = MenuItemSubmenu & {
@@ -51,7 +51,7 @@
 		show?: boolean;
 		el?: HTMLElement;
 		timeout?: ReturnType<typeof setTimeout>;
-		props?: HTMLAttributes<HTMLDivElement>;
+		props?: SvelteHTMLElements['div'];
 		children: MenuItemInternal[];
 	};
 

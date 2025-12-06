@@ -1,5 +1,9 @@
 <script lang="ts" module>
-	export type FlowApi<FlowNode, FlowEdge, FlowPort> = {
+	export type FlowApi<
+		FlowNode extends { ports: FlowPort[]; position: { x: number; y: number } },
+		FlowEdge extends { from: string; to: string },
+		FlowPort extends { id: string }
+	> = {
 		readonly selectedNodes: Set<FlowNode>;
 		readonly selectedEdges: Set<FlowEdge>;
 		readonly activePort?: [FlowNode, FlowPort];
@@ -13,7 +17,7 @@
 <script lang="ts">
 	import { onMount, tick, type Snippet } from 'svelte';
 	import { createAttachmentKey } from 'svelte/attachments';
-	import type { HTMLAttributes } from 'svelte/elements';
+	import type { SvelteHTMLElements } from 'svelte/elements';
 	import { SvelteSet } from 'svelte/reactivity';
 
 	type FlowPort = $$Generic<{ id: string }>;
@@ -56,18 +60,15 @@
 		'validate-edge': (from: PortEndpoint, to: PortEndpoint) => FlowEdge | undefined;
 		Node: Snippet<[bindings: ReturnType<typeof createNodeBindings>]>;
 		'edge-type'?: EdgeType;
-		'default-edge-path-props'?: (
-			e: FlowEdge,
-			isSelected: boolean
-		) => HTMLAttributes<SVGPathElement>;
+		'default-edge-path-props'?: (e: FlowEdge, isSelected: boolean) => SvelteHTMLElements['path'];
 		readonly?: boolean;
 		Edge?: Snippet<
 			[edge: FlowEdge, from: PortAnchor, to: PortAnchor, bindings: EdgeBindingContext]
 		>;
 		GhostEdge?: Snippet<[from: PortAnchor, to: DOMRect]>;
-		'box-selection-props'?: HTMLAttributes<HTMLDivElement>;
+		'box-selection-props'?: SvelteHTMLElements['div'];
 		api?: FlowApi<FlowNode, FlowEdge, FlowPort>;
-	} & HTMLAttributes<HTMLDivElement> = $props();
+	} & SvelteHTMLElements['div'] = $props();
 
 	const drect = (x = 0, y = 0, w = 0, h = 0) =>
 		({ x, y, width: w, height: h, bottom: 0, left: 0, right: 0, top: 0 }) as DOMRect;

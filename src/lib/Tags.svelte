@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack, type Snippet } from 'svelte';
-	import type { HTMLInputAttributes, HTMLLabelAttributes } from 'svelte/elements';
+	import type { SvelteHTMLElements } from 'svelte/elements';
 	type T = $$Generic<{ value: string }>;
 
 	let {
@@ -21,8 +21,8 @@
 		Tag: Snippet<[value: T, props: Record<string, any>]>;
 		PlaceHolder?: Snippet;
 		onTag?: (newValue: { value: string }) => T | undefined;
-		cursorProps?: HTMLInputAttributes;
-	} & HTMLLabelAttributes = $props();
+		cursorProps?: SvelteHTMLElements['input'];
+	} & SvelteHTMLElements['label'] = $props();
 	let cursor = $state({
 		value: '',
 		pos: tags.length

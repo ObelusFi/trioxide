@@ -3,7 +3,7 @@
 </script>
 
 <script lang="ts">
-	import type { HTMLAttributes } from 'svelte/elements';
+	import type { HTMLAttributes, SvelteHTMLElements } from 'svelte/elements';
 
 	const keyIcons = {
 		Cmd,
@@ -27,7 +27,7 @@
 	type Key =
 		| {
 				key: keyof typeof keyIcons;
-				props: HTMLAttributes<HTMLElement>;
+				props: SvelteHTMLElements['kbd'];
 		  }
 		| string;
 
@@ -36,7 +36,7 @@
 		props,
 		platform = 'auto'
 	}: {
-		props?: HTMLAttributes<HTMLElement>;
+		props?: SvelteHTMLElements['samp'];
 		keys: Key[];
 		platform?: Platform;
 	} = $props();

@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import type { HTMLAttributes } from 'svelte/elements';
+	import type { SvelteHTMLElements } from 'svelte/elements';
 	type PanelNode = {
 		el?: HTMLElement;
 		dir: 'w' | 'h';
@@ -25,20 +25,20 @@
 	export type HotcornerProps = (
 		panel: Panel,
 		corner: 'tl' | 'tr' | 'bl' | 'br'
-	) => HTMLAttributes<HTMLButtonElement>;
+	) => SvelteHTMLElements['button'];
 
 	export type ResizerProps = (
 		panel: Panel,
 		dir: 'w' | 'h'
-	) => Omit<HTMLAttributes<HTMLButtonElement>, 'onmousedown' | 'onkeydown'>;
+	) => Omit<SvelteHTMLElements['button'], 'onmousedown' | 'onkeydown'>;
 
 	export type OverlayPanelProps = (
 		dir: 'w' | 'h',
 		move: boolean,
 		isTarget: boolean
-	) => HTMLAttributes<HTMLDivElement>;
+	) => SvelteHTMLElements['div'];
 
-	export type OverlayProps = (dir: 'w' | 'h', move: boolean) => HTMLAttributes<HTMLDivElement>;
+	export type OverlayProps = (dir: 'w' | 'h', move: boolean) => SvelteHTMLElements['div'];
 
 	export type PanelProps = (props: {
 		isMoveTarget: boolean;
@@ -47,7 +47,7 @@
 		isMoveStart: boolean;
 		isSplitting: boolean;
 		dir?: 'w' | 'h';
-	}) => HTMLAttributes<HTMLDivElement>;
+	}) => SvelteHTMLElements['div'];
 </script>
 
 <script lang="ts">
@@ -78,7 +78,7 @@
 		components: Record<string, Snippet<[{ panel?: Panel }]> | Component<{ panel?: Panel }>>;
 		EmptyView?: Snippet<[Panel]>;
 		HotcornerContent?: Snippet<['tl' | 'tr' | 'bl' | 'br']>;
-		containerProps?: HTMLAttributes<HTMLDivElement>;
+		containerProps?: SvelteHTMLElements['div'];
 		overlayProps?: OverlayProps;
 		overlayPanelProps?: OverlayPanelProps;
 		panelProps?: PanelProps;
@@ -544,7 +544,7 @@
 		{/if}
 	</div>
 	{#if isResizable}
-		{@const props = resizerProps?.(node, parent!.dir) as HTMLAttributes<HTMLButtonElement>}
+		{@const props = resizerProps?.(node, parent!.dir) as SvelteHTMLElements['button']}
 		<button
 			class="trioxide_resizer {parent!.dir} {props?.class?.toString() ||
 				'trioxide_resizer-default'}"

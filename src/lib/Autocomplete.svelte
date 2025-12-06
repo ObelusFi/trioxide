@@ -58,11 +58,7 @@
 </script>
 
 <script lang="ts">
-	import type {
-		HTMLInputAttributes,
-		HTMLTextareaAttributes,
-		HTMLAttributes
-	} from 'svelte/elements';
+	import type { SvelteHTMLElements } from 'svelte/elements';
 
 	let {
 		type = 'textarea',
@@ -76,8 +72,8 @@
 		value: string;
 		provider: SuggestionProvider;
 		acceptOn?: (e: KeyboardEvent) => boolean;
-		ghostProps?: HTMLAttributes<HTMLDivElement>;
-	} & (HTMLInputAttributes & HTMLTextareaAttributes) = $props();
+		ghostProps?: SvelteHTMLElements['div'];
+	} & (SvelteHTMLElements['input'] & SvelteHTMLElements['textarea']) = $props();
 
 	let el: HTMLElement = $state(null!);
 	let completion = $state('');
