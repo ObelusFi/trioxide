@@ -36,7 +36,7 @@
 		},
 	]);
 
-	let edges: Edge[] = $state([]);
+	let edges: Edge[] = $state([{from:'a', to:'d'}]);
 	const onEdge = (
 		[nodeFrom, { id: from, type: typeFrom }]: [Node, Port],
 		[nodeTo, { id: to, type: typeTo }]: [Node, Port]
@@ -246,11 +246,7 @@ Flow tracks dragging, selection, and port hit-testing while you render the nodes
 		<article class="" {...dragBindings} {...nodeBindings}>
 			<div class="ports">
 				{#each node.ports as port}
-					<button 
-						class="" 
-						{...portBindings(port)} 
-						aria-label={`Connect ${port.id}`}>
-					</button>
+					<button class="" {...portBindings(port)} aria-label={`Connect ${port.id}`}> </button>
 				{/each}
 			</div>
 			<span class="text-sm">{node.title}</span>
