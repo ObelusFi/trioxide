@@ -15,7 +15,7 @@
 </script>
 
 <script lang="ts">
-	import { onMount, tick, type Snippet } from 'svelte';
+	import { onMount, tick, untrack, type Snippet } from 'svelte';
 	import { createAttachmentKey } from 'svelte/attachments';
 	import type { SvelteHTMLElements } from 'svelte/elements';
 	import { SvelteSet } from 'svelte/reactivity';
@@ -101,13 +101,19 @@
 		return { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
 	});
 
-	const unscaleRect = (r: DOMRect) =>
-		({
-			x: r.x / scale,
-			y: r.y / scale,
-			width: r.width / scale,
-			height: r.height / scale
-		}) as DOMRect;
+	const unscaleRect = (r: DOMRect) => {
+		r.x /= scale;
+		r.y /= scale;
+		r.width /= scale;
+		r.height /= scale;
+		return r;
+	};
+	// ({
+	// 	x: r.x / scale,
+	// 	y: r.y / scale,
+	// 	width: r.width / scale,
+	// 	height: r.height / scale
+	// }) as DOMRect;
 
 	const toViewportCoords = (clientX: number, clientY: number) => ({
 		x: clientX / scale - viewportRect.x,
@@ -202,8 +208,8 @@
 		const rect = el.getBoundingClientRect();
 		scale = rect.width / el.offsetWidth || 1;
 		viewportRect = unscaleRect(rect);
-		for (const [id, { el }] of Object.entries(portRegistry)) {
-			portRegistry[id].rect = unscaleRect(el.getBoundingClientRect());
+		for (const id in portRegistry) {
+			portRegistry[id].rect = unscaleRect(portRegistry[id].el.getBoundingClientRect());
 		}
 		animationFrame = requestAnimationFrame(updateRects);
 	};
@@ -339,14 +345,22 @@
 			portBindings: createPortBindings(node),
 			dragBindings: {
 				onmousedown: startNodeDrag,
-				ontouchstart: startNodeDrag,
-				get style() {
-					return `transform: translate(${node.position.x}px, ${node.position.y}px);`;
-				}
+				ontouchstart: startNodeDrag
 			},
 			nodeBindings: {
 				[createAttachmentKey()]: (dom: HTMLElement) => {
-					nodeRegistry.set(node, dom);
+					untrack(() => {
+						nodeRegistry.set(node, dom);
+					});
+					dom.style.setProperty('position', 'absolute');
+					dom.style.setProperty('left', '0');
+					dom.style.setProperty('top', '0');
+					$effect(() => {
+						dom.style.setProperty(
+							'transform',
+							`translate(${node.position.x}px, ${node.position.y}px)`
+						);
+					});
 					return () => {
 						nodeRegistry.delete(node);
 						selectedNodes.delete(node);
@@ -482,13 +496,14 @@
 	{@const { rect, d } = makeStepArrow(a.rect, b.rect)}
 	{@const edgeHandlers = bindings?.edgeHandlers || {}}
 	<svg
-		class="absolute overflow-visible"
-		style="
-			width: {rect.width}px;
-			height: {rect.height}px;
-			transform:translate({rect.x}px, {rect.y}px);
-			pointer-events:none;
-		"
+		style:position="absolute"
+		style:overflow="visible"
+		style:left="0"
+		style:top="0"
+		style:pointer-events="none"
+		style:width="{rect.width}px"
+		style:height="{rect.height}px"
+		style:transform="translate({rect.x}px, {rect.y}px)"
 	>
 		<path
 			{d}

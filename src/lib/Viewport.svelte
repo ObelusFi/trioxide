@@ -74,7 +74,7 @@
 		e.preventDefault();
 		e.stopImmediatePropagation();
 
-		const isZoomGesture = e.ctrlKey;
+		const isZoomGesture = e.ctrlKey || e.metaKey;
 
 		if (isZoomGesture) {
 			const rect = wrapper.getBoundingClientRect();
@@ -164,7 +164,7 @@
 		: pattern === 'square'
 			? 'linear-gradient(to right, var(--pattern_color) 1px, transparent 1px),linear-gradient(to bottom, var(--pattern_color) 0.5px, transparent 0.5px);'
 			: ''}
-	style:background-size={pattern == 'none' ? '' : 'var(--bg) var(--bg)'}
+	style:background-size={pattern == 'none' ? '' : 'var(--bg-s) var(--bg-s)'}
 	style:background-position={pattern == 'none' ? '' : 'var(--px) var(--py)'}
 	style:--pattern_color={patternColor}
 	{...restParams}
@@ -175,7 +175,7 @@
 	style:--s={viewport.zoom}
 	style:--px="{viewport.x}px"
 	style:--py="{viewport.y}px"
-	style:--bg="{patternSize(viewport.zoom)}px"
+	style:--bg-s="{patternSize(viewport.zoom)}px"
 >
 	<div
 		style:transform="translate(var(--px), var(--py)) scale(var(--s))"
