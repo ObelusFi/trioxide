@@ -85,7 +85,6 @@ Pass a `View` snippet that receives `CalendarData` and bind to the `api` for hel
 ```svelte
 <script lang="ts">
 	import { Calendar, type CalendarApi } from '@obelus/trioxide';
-	import '@obelus/trioxide/index.css';
 
 	let locale = $state('en-US');
 	let api = $state({}) as CalendarApi;

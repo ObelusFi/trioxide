@@ -65,7 +65,6 @@ Start by defining a `Panel` tree and mapping the names you use in that tree to S
 ```svelte
 <script lang="ts">
 	import { Docker, type DockApi, type Panel } from '@obelus/trioxide';
-	import '@obelus/trioxide/index.css'; // default light/dark tokens (feel free to rename to default_themes.css)
 
 	let layout: Panel = $state({
 		dir: 'w',
