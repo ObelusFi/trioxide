@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 @import 'remixicon/fonts/remixicon.css';
+@source './components/test/+page.svelte';
 
 body,
 html {
@@ -71,6 +72,58 @@ html {
 	--red-10: #dc3e42;
 	--red-11: #ce2c31;
 	--red-12: #641723;
+
+	--neutral-1: #fcfcfc;
+	--neutral-2: #f9f9f9;
+	--neutral-3: #f0f0f0;
+	--neutral-4: #e8e8e8;
+	--neutral-5: #e0e0e0;
+	--neutral-6: #d9d9d9;
+	--neutral-7: #cecece;
+	--neutral-8: #bbbbbb;
+	--neutral-9: #8d8d8d;
+	--neutral-10: #838383;
+	--neutral-11: #646464;
+	--neutral-12: #202020;
+
+	--neutral-a1: #00000003;
+	--neutral-a2: #00000006;
+	--neutral-a3: #0000000f;
+	--neutral-a4: #00000017;
+	--neutral-a5: #0000001f;
+	--neutral-a6: #00000026;
+	--neutral-a7: #00000031;
+	--neutral-a8: #00000044;
+	--neutral-a9: #00000072;
+	--neutral-a10: #0000007c;
+	--neutral-a11: #0000009b;
+	--neutral-a12: #000000df;
+
+	--highlight-1: #fbfdff;
+	--highlight-2: #f4faff;
+	--highlight-3: #e6f4fe;
+	--highlight-4: #d5efff;
+	--highlight-5: #c2e5ff;
+	--highlight-6: #acd8fc;
+	--highlight-7: #8ec8f6;
+	--highlight-8: #5eb1ef;
+	--highlight-9: #0090ff;
+	--highlight-10: #0588f0;
+	--highlight-11: #0d74ce;
+	--highlight-12: #113264;
+
+	--highlight-a1: #0080ff04;
+	--highlight-a2: #008cff0b;
+	--highlight-a3: #008ff519;
+	--highlight-a4: #009eff2a;
+	--highlight-a5: #0093ff3d;
+	--highlight-a6: #0088f653;
+	--highlight-a7: #0083eb71;
+	--highlight-a8: #0084e6a1;
+	--highlight-a9: #0090ff;
+	--highlight-a10: #0086f0fa;
+	--highlight-a11: #006dcbf2;
+	--highlight-a12: #002359ee;
 }
 
 :root.trioxide_dark {
@@ -99,6 +152,58 @@ html {
 	--red-10: #ec5d5e;
 	--red-11: #ff9592;
 	--red-12: #ffd1d9;
+
+	--neutral-1: #111111;
+	--neutral-2: #191919;
+	--neutral-3: #222222;
+	--neutral-4: #2a2a2a;
+	--neutral-5: #313131;
+	--neutral-6: #3a3a3a;
+	--neutral-7: #484848;
+	--neutral-8: #606060;
+	--neutral-9: #6e6e6e;
+	--neutral-10: #7b7b7b;
+	--neutral-11: #b4b4b4;
+	--neutral-12: #eeeeee;
+
+	--neutral-a1: #00000000;
+	--neutral-a2: #ffffff09;
+	--neutral-a3: #ffffff12;
+	--neutral-a4: #ffffff1b;
+	--neutral-a5: #ffffff22;
+	--neutral-a6: #ffffff2c;
+	--neutral-a7: #ffffff3b;
+	--neutral-a8: #ffffff55;
+	--neutral-a9: #ffffff64;
+	--neutral-a10: #ffffff72;
+	--neutral-a11: #ffffffaf;
+	--neutral-a12: #ffffffed;
+
+	--highlight-1: #0d1520;
+	--highlight-2: #111927;
+	--highlight-3: #0d2847;
+	--highlight-4: #003362;
+	--highlight-5: #004074;
+	--highlight-6: #104d87;
+	--highlight-7: #205d9e;
+	--highlight-8: #2870bd;
+	--highlight-9: #0090ff;
+	--highlight-10: #3b9eff;
+	--highlight-11: #70b8ff;
+	--highlight-12: #c2e6ff;
+
+	--highlight-a1: #004df211;
+	--highlight-a2: #1166fb18;
+	--highlight-a3: #0077ff3a;
+	--highlight-a4: #0075ff57;
+	--highlight-a5: #0081fd6b;
+	--highlight-a6: #0f89fd7f;
+	--highlight-a7: #2a91fe98;
+	--highlight-a8: #3094feb9;
+	--highlight-a9: #0090ff;
+	--highlight-a10: #3b9eff;
+	--highlight-a11: #70b8ff;
+	--highlight-a12: #c2e6ff;
 }
 
 @theme inline {
@@ -130,6 +235,71 @@ html {
 	--color-red-10: var(--red-10);
 	--color-red-11: var(--red-11);
 	--color-red-12: var(--red-12);
+
+	--color-red-1: var(--red-1);
+	--color-red-2: var(--red-2);
+	--color-red-3: var(--red-3);
+	--color-red-4: var(--red-4);
+	--color-red-5: var(--red-5);
+	--color-red-6: var(--red-6);
+	--color-red-7: var(--red-7);
+	--color-red-8: var(--red-8);
+	--color-red-9: var(--red-9);
+	--color-red-10: var(--red-10);
+	--color-red-11: var(--red-11);
+	--color-red-12: var(--red-12);
+
+	--color-neutral-1: var(--neutral-1);
+	--color-neutral-2: var(--neutral-2);
+	--color-neutral-3: var(--neutral-3);
+	--color-neutral-4: var(--neutral-4);
+	--color-neutral-5: var(--neutral-5);
+	--color-neutral-6: var(--neutral-6);
+	--color-neutral-7: var(--neutral-7);
+	--color-neutral-8: var(--neutral-8);
+	--color-neutral-9: var(--neutral-9);
+	--color-neutral-10: var(--neutral-10);
+	--color-neutral-11: var(--neutral-11);
+	--color-neutral-12: var(--neutral-12);
+
+	--color-neutral-a1: var(--neutral-a1);
+	--color-neutral-a2: var(--neutral-a2);
+	--color-neutral-a3: var(--neutral-a3);
+	--color-neutral-a4: var(--neutral-a4);
+	--color-neutral-a5: var(--neutral-a5);
+	--color-neutral-a6: var(--neutral-a6);
+	--color-neutral-a7: var(--neutral-a7);
+	--color-neutral-a8: var(--neutral-a8);
+	--color-neutral-a9: var(--neutral-a9);
+	--color-neutral-a10: var(--neutral-a10);
+	--color-neutral-a11: var(--neutral-a11);
+	--color-neutral-a12: var(--neutral-a12);
+
+	--color-highlight-1: var(--highlight-1);
+	--color-highlight-2: var(--highlight-2);
+	--color-highlight-3: var(--highlight-3);
+	--color-highlight-4: var(--highlight-4);
+	--color-highlight-5: var(--highlight-5);
+	--color-highlight-6: var(--highlight-6);
+	--color-highlight-7: var(--highlight-7);
+	--color-highlight-8: var(--highlight-8);
+	--color-highlight-9: var(--highlight-9);
+	--color-highlight-10: var(--highlight-10);
+	--color-highlight-11: var(--highlight-11);
+	--color-highlight-12: var(--highlight-12);
+
+	--color-highlight-a1: var(--highlight-a1);
+	--color-highlight-a2: var(--highlight-a2);
+	--color-highlight-a3: var(--highlight-a3);
+	--color-highlight-a4: var(--highlight-a4);
+	--color-highlight-a5: var(--highlight-a5);
+	--color-highlight-a6: var(--highlight-a6);
+	--color-highlight-a7: var(--highlight-a7);
+	--color-highlight-a8: var(--highlight-a8);
+	--color-highlight-a9: var(--highlight-a9);
+	--color-highlight-a10: var(--highlight-a10);
+	--color-highlight-a11: var(--highlight-a11);
+	--color-highlight-a12: var(--highlight-a12);
 }
 
 :root.trioxide_dark .shiki,
