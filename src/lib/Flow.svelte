@@ -108,12 +108,6 @@
 		r.height /= scale;
 		return r;
 	};
-	// ({
-	// 	x: r.x / scale,
-	// 	y: r.y / scale,
-	// 	width: r.width / scale,
-	// 	height: r.height / scale
-	// }) as DOMRect;
 
 	const toViewportCoords = (clientX: number, clientY: number) => ({
 		x: clientX / scale - viewportRect.x,
@@ -349,9 +343,7 @@
 			},
 			nodeBindings: {
 				[createAttachmentKey()]: (dom: HTMLElement) => {
-					untrack(() => {
-						nodeRegistry.set(node, dom);
-					});
+					nodeRegistry.set(node, dom);
 					dom.style.setProperty('position', 'absolute');
 					dom.style.setProperty('left', '0');
 					dom.style.setProperty('top', '0');
