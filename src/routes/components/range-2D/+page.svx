@@ -1,0 +1,62 @@
+<script lang="ts">
+	import Range2D from '$lib/Range2D.svelte';
+	let x = $state(0.5);
+	let y = $state(0.5);
+</script>
+
+# Range 2D
+
+Two-axis range input with a draggable handle, arrow-key nudging, and an API to map click positions into value space. Works with any handle UI you render through a snippet.
+
+<div class="flex flex-col gap-2">
+<Range2D
+	bind:x
+	bind:y
+	class="h-40 rounded-sm border border-neutral-6 bg-neutral-2 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-size-[24px_24px]"
+	>
+
+    {#snippet Handle(bindings)}
+    	<button aria-label="pick" class="h-3 w-3 rounded-full bg-neutral-12" {...bindings}>
+    		<span class="absolute top-full left-1/2 block w-max -translate-x-1/2"
+    			>({x.toFixed(2)}, {y.toFixed(2)})</span
+    		>
+    	</button>
+    {/snippet}
+
+</Range2D>
+</div>
+
+<p class="mt-2 text-sm text-(--trioxide_neutral-11)">
+Click anywhere in the box to move the handle (using `coordsToValue`), drag to update both axes, or press arrow keys while the handle is focused to nudge values.
+</p>
+
+---
+
+## Usage
+
+```svelte
+<script lang="ts">
+	import { Range2D } from '@obelus/trioxide';
+
+	let x = $state(0.25);
+	let y = $state(0.75);
+</script>
+
+<Range2D bind:x bind:y min-x={-1} max-x={1} min-y={0} max-y={10} class="h-48 rounded-sm border">
+	{#snippet Handle(bindings)}
+		<button class="h-3 w-3 rounded-full" {...bindings}></button>
+	{/snippet}
+</Range2D>
+```
+
+---
+
+## Props
+
+- `x` / `bind:x`, `y` / `bind:y`: numeric values mapped to the 2D plane; defaults to `0`.
+- `min-x`, `max-x`, `min-y`, `max-y`: bounds for each axis; values are clamped on drag, click, or keyboard.
+- `Handle`: is the snippet that renders the draggable element; spread `bindings` to wire up drag/keyboard and positioning.
+- `api` / `bind:api`: exposes `coordsToValue(clientX, clientY)` which converts a viewport point to clamped `{ x, y }` in your value space useful for programmatic updates or overlay clicks.
+- Remaining `HTMLDivElement` props apply to the outer container (e.g., `class`, `style`, `aria-*`).
+
+---
