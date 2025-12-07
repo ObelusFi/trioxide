@@ -1,3 +1,12 @@
+## v0.4.4 - 2025-12-07
+
+- chore: add Range2d doc
+- chore: Cleanups
+- feat: add Range2D
+- fix: remove usless untrack
+- fix: viewport and flow to work with rtl and style props
+- chore: some doc fixes & add viewport and Flow to the exports
+
 ## v0.4.3 - 2025-12-07
 
 - fix: cleanup edges and nodes and small chores
