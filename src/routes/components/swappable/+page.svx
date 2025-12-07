@@ -50,7 +50,7 @@ Drag-and-drop list reordering with a tiny contract: provide an `items` array and
 	bind:items
 	drag-on-hold={120}
 	threshold={18}
-	onSwap={(from, to) => console.log(from, to)}
+	onSwap={(from, to) => console.log('swapped', from, to)}
 >
 	{#snippet Item(item, bindings)}
 		{@const { element, handle, isDragging } = bindings}

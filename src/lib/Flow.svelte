@@ -312,7 +312,10 @@
 		},
 		edgeHandlers: {
 			onmousedown: (event: MouseEvent) => selectEdge(edge, event),
-			ontouchstart: (event: TouchEvent) => selectEdge(edge, event)
+			ontouchstart: (event: TouchEvent) => selectEdge(edge, event),
+			[createAttachmentKey()]: () => {
+				return () => selectedEdges.delete(edge);
+			}
 		}
 	});
 
@@ -346,6 +349,7 @@
 					nodeRegistry.set(node, dom);
 					return () => {
 						nodeRegistry.delete(node);
+						selectedNodes.delete(node);
 					};
 				}
 			}

@@ -115,7 +115,7 @@
 	</nav>
 	<div class="grid grid-cols-1 px-4 pb-12 lg:grid-cols-[200px_1fr_200px] lg:px-12 lg:pt-12">
 		<aside class="sticky top-20 hidden flex-col self-start lg:flex">
-			<span class="font-semibold">Compnents</span>
+			<span class="font-semibold">Components</span>
 			<nav class=" mt-2 flex flex-col gap-1">
 				{@render Links()}
 			</nav>
