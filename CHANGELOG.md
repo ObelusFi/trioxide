@@ -1,3 +1,8 @@
+## v0.4.3 - 2025-12-07
+
+- fix: cleanup edges and nodes and small chores
+- fix: readme, remove usless prevent default
+
 ## v0.4.2 - 2025-12-06
 
 - chore: add an edge
