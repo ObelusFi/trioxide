@@ -1,3 +1,7 @@
+## v0.4.7 - 2025-12-12
+
+- fix: make swappable scale aware
+
 ## v0.4.6 - 2025-12-12
 
 - fix: export flow instead of viewport
