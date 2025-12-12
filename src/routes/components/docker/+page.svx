@@ -22,7 +22,7 @@
 		]
 	});
 
-	let api = {} as DockApi;
+	let api = $state({}) as DockApi;
 </script>
 
 # Docker
@@ -31,13 +31,19 @@ A dock-style layout manager that lets you split, move, and resize panels with bo
 
 <div class="h-[50dvh] w-full">
 	{#snippet A()}
+		<div class="w-full h-full flex flex-col items-center justify-center gap-1">
 		A
+		</div>
 	{/snippet}
 	{#snippet B()}
+	<div class="w-full h-full flex flex-col items-center justify-center gap-1">
 		B
+		</div>
 	{/snippet}
 	{#snippet C()}
+	<div class="w-full h-full flex flex-col items-center justify-center gap-1">
 		C
+		</div>
 	{/snippet}
 
     {#snippet Default(node)}
@@ -48,7 +54,13 @@ A dock-style layout manager that lets you split, move, and resize panels with bo
     	</div>
     {/snippet}
 
-    <Docker components={{ A, B, C }} bind:layout {api} min-size={20} EmptyView={Default}></Docker>
+    <Docker
+    	components={{ A, B, C }}
+    	class="w-full h-full"
+    	bind:layout
+    	bind:api
+    	panelProps={({ isLeaf, isSplitting }) => ({ class: isLeaf && !isSplitting ? "rounded-md border border-neutral-7" : "" })}
+    	min-size={20} EmptyView={Default}></Docker>
 
 </div>
 

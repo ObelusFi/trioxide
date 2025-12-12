@@ -90,7 +90,6 @@
 	};
 
 	const onscroll = () => {
-		console.log('scrolling');
 		ghostEl.scrollLeft = el.scrollLeft;
 		ghostEl.scrollTop = el.scrollTop;
 	};

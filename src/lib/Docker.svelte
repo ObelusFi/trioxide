@@ -2,7 +2,7 @@
 	import type { SvelteHTMLElements } from 'svelte/elements';
 	type PanelNode = {
 		el?: HTMLElement;
-		dir: 'w' | 'h';
+		dir: PanelDir;
 		s: number;
 		parentNode?: PanelNode;
 		children?: PanelNode[];
@@ -10,14 +10,14 @@
 	};
 
 	export type Panel = {
-		dir: 'w' | 'h';
+		dir: PanelDir;
 		s: number;
 		children?: Panel[];
 		component?: string;
 	};
 
 	export type DockApi = {
-		splitPanel: (node: Panel, dir?: 'w' | 'h', size?: number, targetIsFirst?: boolean) => void;
+		splitPanel: (node: Panel, dir?: PanelDir, size?: number, targetIsFirst?: boolean) => void;
 		closePanel: (node: Panel) => void;
 		setComponent: (node: Panel, component: string) => void;
 	};
@@ -29,16 +29,24 @@
 
 	export type ResizerProps = (
 		panel: Panel,
-		dir: 'w' | 'h'
+		dir: PanelDir
 	) => Omit<SvelteHTMLElements['button'], 'onmousedown' | 'onkeydown'>;
 
 	export type OverlayPanelProps = (
-		dir: 'w' | 'h',
+		dir: PanelDir,
 		move: boolean,
 		isTarget: boolean
 	) => SvelteHTMLElements['div'];
 
-	export type OverlayProps = (dir: 'w' | 'h', move: boolean) => SvelteHTMLElements['div'];
+	export type OverlayProps = (props: {
+		action: 'split' | 'move';
+		isTarget: boolean;
+		dir: PanelDir;
+		s: number;
+	}) => SvelteHTMLElements['div'];
+
+	export type HotCornerPos = 'tl' | 'tr' | 'bl' | 'br';
+	export type PanelDir = 'w' | 'h';
 
 	export type PanelProps = (props: {
 		isMoveTarget: boolean;
@@ -46,12 +54,19 @@
 		isLeaf: boolean;
 		isMoveStart: boolean;
 		isSplitting: boolean;
-		dir?: 'w' | 'h';
+		dir?: PanelDir;
 	}) => SvelteHTMLElements['div'];
+
+	//@ts-expect-error EmptySnippet
+	const EmptySnippetKey = Object.getOwnPropertyNames(EmptySnippet).join('');
+	export function isSnippet<P extends unknown[]>(t: any): t is Snippet<P> {
+		return Object.getOwnPropertyNames(t).join('') == EmptySnippetKey;
+	}
 </script>
 
 <script lang="ts">
 	import { onMount, type Component, type Snippet } from 'svelte';
+	import { createAttachmentKey } from 'svelte/attachments';
 
 	const clamp = (v: number, min: number, max: number) => Math.min(Math.max(min, v), max);
 
@@ -59,39 +74,27 @@
 		components,
 		layout = $bindable(),
 		EmptyView,
-		HotcornerContent,
-		hotcornerProps,
-		resizerProps,
-		containerProps,
+		HotCorner,
+		Resizer,
 		overlayProps,
 		overlayPanelProps,
 		panelProps,
-		'panel-gap': panelGap,
-		OverlayMoveTargetContent,
-		OverlayMoveRestContent,
-		OverlaySplitTargetContent,
-		OverlaySplitRestContent,
 		'min-size': minSize,
-		api
+		api,
+		...containerProps
 	}: {
 		layout: Panel;
 		components: Record<string, Snippet<[{ panel?: Panel }]> | Component<{ panel?: Panel }>>;
 		EmptyView?: Snippet<[Panel]>;
-		HotcornerContent?: Snippet<['tl' | 'tr' | 'bl' | 'br']>;
-		containerProps?: SvelteHTMLElements['div'];
+		HotCorner?: Snippet<[ReturnType<typeof getHotCornerBindings>]>;
+		Resizer?: Snippet<[]>;
 		overlayProps?: OverlayProps;
 		overlayPanelProps?: OverlayPanelProps;
 		panelProps?: PanelProps;
 		'panel-gap'?: string;
-		OverlayMoveTargetContent?: Snippet;
-		OverlayMoveRestContent?: Snippet;
-		OverlaySplitTargetContent?: Snippet;
-		OverlaySplitRestContent?: Snippet;
-		resizerProps?: ResizerProps;
-		hotcornerProps?: HotcornerProps;
 		'min-size'?: number;
 		api?: DockApi;
-	} = $props();
+	} & SvelteHTMLElements['div'] = $props();
 
 	let el: HTMLElement = $state(undefined!);
 	let dir: 'rtl' | 'ltr' = $state('rtl');
@@ -107,7 +110,7 @@
 		w: 0,
 		h: 0,
 		s: 0,
-		dir: 'w' as 'w' | 'h',
+		dir: 'w' as PanelDir,
 		move: false,
 		moveTargetIsFirst: true
 	});
@@ -160,6 +163,22 @@
 	const normalizeSizes = (node: PanelNode) => {
 		const total = node.children?.reduce((sum, p) => sum + p.s, 0) || 1;
 		node.children?.forEach((p) => (p.s = (p.s / total) * 100));
+	};
+
+	const getHotCornerBindings = (node: PanelNode, pos: HotCornerPos) => {
+		return {
+			node,
+			get pos() {
+				return pos;
+			},
+			bindings: {
+				onmousedown: splittingStart(node),
+				ontouchstart: splittingStart(node),
+				get style() {
+					return `position:absolute;${['tl', 'bl'].includes(pos) ? 'left:0;' : ''}${['tr', 'br'].includes(pos) ? 'right:0;' : ''}${['tl', 'br'].includes(pos) ? 'top:0;' : ''}${['br', 'bl'].includes(pos) ? 'bottom:0;' : ''}`;
+				}
+			}
+		};
 	};
 
 	const updateOverlayFromRect = (rect: DOMRect, x: number, y: number) => {
@@ -373,21 +392,21 @@
 		};
 	};
 
-	const panels = (e: HTMLElement) => {
-		return Array.from(e.children).filter((e) =>
-			e.classList.contains('trioxide_panel')
-		) as HTMLElement[];
+	let panels = new WeakSet<Element>();
+
+	const panelsOf = (e: HTMLElement) => {
+		return Array.from(e.children).filter((e) => panels.has(e)) as HTMLElement[];
 	};
 
 	$effect(() => {
-		const stack = [[layout, panels(el)[0]] as [PanelNode, HTMLElement]];
+		const stack = [[layout, panelsOf(el)[0]] as [PanelNode, HTMLElement]];
 		while (stack.length) {
 			const [node, dom] = stack.pop()!;
 			node.el = dom;
 
 			node.children?.forEach((child, i) => {
 				child.parentNode = node;
-				stack.push([child, panels(dom)[i] as HTMLElement]);
+				stack.push([child, panelsOf(dom)[i] as HTMLElement]);
 			});
 		}
 	});
@@ -421,7 +440,7 @@
 
 	const splitPanel = (
 		node: PanelNode,
-		dir: 'w' | 'h' = 'w',
+		dir: PanelDir = 'w',
 		size: number = 50,
 		targetIsFirst: boolean = true
 	) => {
@@ -452,6 +471,20 @@
 		}
 	};
 
+	const getResizerBindings = (node: PanelNode, dir: PanelDir) => {
+		return {
+			get dir() {
+				return dir;
+			},
+			node,
+			bindings: {
+				onmousedown: resizeStart(node),
+				ontouchstart: resizeStart(node),
+				onkeydown: keyboardResize(node)
+			}
+		};
+	};
+
 	onMount(() => {
 		dir = getComputedStyle(el).direction as 'ltr';
 		if (api) {
@@ -473,32 +506,25 @@
 			window.removeEventListener('keydown', onkeydown);
 		};
 	});
-
-	const omit = <T extends Record<string, any> | undefined>(
-		props: T,
-		...keys: (keyof NonNullable<T>)[]
-	): T => {
-		if (!props) return undefined as T;
-		let cp: Record<string, any> = {};
-		for (let k in props) {
-			if (keys.includes(k)) continue;
-			cp[k] = props[k];
-		}
-		return cp as T;
-	};
 </script>
+
+{#snippet HotCornerDefault({ bindings, pos }: ReturnType<typeof getHotCornerBindings>)}
+	<button
+		style:position="absolute"
+		style:left={['tl', 'bl'].includes(pos) ? '0' : ''}
+		style:top={['tl', 'tr'].includes(pos) ? '0' : ''}
+		style:bottom={['bl', 'br'].includes(pos) ? '0' : ''}
+		style:right={['br', 'tr'].includes(pos) ? '0' : ''}
+		style:width="10px"
+		style:height="10px"
+		style:cursor="crosshair"
+		{...bindings}
+	></button>
+{/snippet}
 
 {#snippet HotCorners(node: PanelNode)}
 	{#each ['tl', 'tr', 'bl', 'br'] as const as pos}
-		{@const props = hotcornerProps?.(node, pos)}
-		<button
-			class="trioxide_hotcorner {props?.class?.toString() || 'trioxide_hotcorner-default'} {pos}"
-			onmousedown={splittingStart(node)}
-			ontouchstart={splittingStart(node)}
-			{...omit(props, 'class', 'onmousedown')}
-		>
-			{@render HotcornerContent?.(pos)}</button
-		>
+		{@render (HotCorner || HotCornerDefault)(getHotCornerBindings(node, pos))}
 	{/each}
 {/snippet}
 
@@ -518,17 +544,18 @@
 		dir: parent?.dir!
 	})}
 	<div
-		class="trioxide_panel
-		{node.dir}
-		{props?.class?.toString()}
-		{isSplitting && !props?.class?.toString() ? 'trioxide_panel-spliting-default' : ''}
-		{isMoveStart && !props?.class?.toString() ? 'trioxide_panel-is-move-start-default' : ''}
-		{isMoveTarget && !props?.class?.toString() ? 'trioxide_panel-is-move-end-default' : ''}
-		{isLeaf && !props?.class?.toString() ? 'trioxide_panel-leaf-default' : ''}
-		"
-		{...omit(props, 'class')}
-		style:--w={parent?.dir == 'w' ? `${node.s}%` : '100%'}
-		style:--h={parent?.dir == 'w' ? '100%' : `${node.s}%`}
+		style:width={parent?.dir == 'w' ? `${node.s}%` : '100%'}
+		style:height={parent?.dir == 'w' ? '100%' : `${node.s}%`}
+		style:position="relative"
+		style:display="flex"
+		style:flex-direction={node.dir == 'w' ? 'row' : 'column'}
+		{@attach (el) => {
+			panels.add(el);
+			return () => {
+				panels.delete(el);
+			};
+		}}
+		{...props}
 	>
 		{#if node.children?.length}
 			{#each node.children as child}
@@ -536,7 +563,12 @@
 			{/each}
 		{:else}
 			{#if node.component}
-				{@render (components[node.component] as any)(node)}
+				{@const C = components[node.component]}
+				{#if isSnippet(C)}
+					{@render C({ panel: node })}
+				{:else}
+					<C panel={node}></C>
+				{/if}
 			{:else}
 				{@render (EmptyView || EmptyViewDefault)(node)}
 			{/if}
@@ -544,269 +576,83 @@
 		{/if}
 	</div>
 	{#if isResizable}
-		{@const props = resizerProps?.(node, parent!.dir) as SvelteHTMLElements['button']}
-		<button
-			class="trioxide_resizer {parent!.dir} {props?.class?.toString() ||
-				'trioxide_resizer-default'}"
-			onmousedown={resizeStart(node)}
-			ontouchstart={resizeStart(node)}
-			onkeydown={keyboardResize(node)}
-			{...omit(props, 'onmousedown', 'onkeydown', 'class')}
-		></button>
+		{@render ResizerDefault(getResizerBindings(node, parent!.dir))}
 	{/if}
+{/snippet}
+
+{#snippet ResizerDefault({ dir, bindings, node }: { dir: PanelDir; bindings: any; node: any })}
+	<button
+		style:position="relative"
+		style:z-index="10"
+		style:height={dir == 'w' ? '100%' : '3px'}
+		style:width={dir == 'h' ? '100%' : '3px'}
+		style:cursor={dir == 'w' ? 'col-resize' : 'row-resize'}
+		{...bindings}
+	></button>
 {/snippet}
 
 {#snippet EmptyViewDefault(_: Panel)}
 	<div class=""></div>
 {/snippet}
 
-<div
-	class="trioxide_ctr {containerProps?.class?.toString() || 'trioxide_ctr-default'}"
-	{...omit(containerProps, 'class')}
-	style:--gap={panelGap || '2px'}
-	bind:this={el}
->
+<div style:position="relative" {...containerProps} bind:this={el}>
 	{@render Panel(layout)}
 	{#if splitTargetStart}
-		{@const props = overlayProps?.(overlay.dir, overlay.move)}
-		{@const pPropsTarget = overlayPanelProps?.(overlay.dir, overlay.move, true)}
-		{@const pProps = overlayPanelProps?.(overlay.dir, overlay.move, false)}
 		{@const action = overlay.move ? 'move' : 'split'}
-		{@const firstCls = `trioxide_overlay-${action}-${overlay.moveTargetIsFirst ? 'target' : 'rest'}-default trioxide_overlay-panel-default`}
-		{@const sndCls = `trioxide_overlay-${action}-${overlay.moveTargetIsFirst ? 'rest' : 'target'}-default trioxide_overlay-panel-default`}
+		{@const dir = overlay.dir}
 		<div
-			class="trioxide_overlay {overlay.dir} {props?.class?.toString() ||
-				'trioxide_overlay-default'}"
-			class:move={overlay.move}
-			{...omit(props, 'class')}
-			style:--s="{overlay.s}%"
-			style:--w="{overlay.w}px"
-			style:--h="{overlay.h}px"
-			style:--x="{overlay.x}px"
-			style:--y="{overlay.y}px"
+			style:display="flex"
+			style:width="{overlay.w}px"
+			style:height="{overlay.h}px"
+			style:left="{overlay.x}px"
+			style:top="{overlay.y}px"
+			style:position="absolute"
+			style:flex-direction={dir == 'w' ? 'row' : 'column'}
+			style:z-index="10"
+			style:cursor={action == 'split' ? (dir == 'w' ? 'col-resize' : 'row-resize') : 'grabbing'}
+			{...overlayProps?.({
+				action,
+				isTarget: overlay.moveTargetIsFirst,
+				dir: overlay.dir,
+				s: overlay.s
+			})}
 		>
-			<div
-				class="trioxide_overlay-panel-first
-				{(overlay.moveTargetIsFirst ? pPropsTarget?.class?.toString() : pProps?.class?.toString()) ||
-					firstCls}"
-				{...omit(overlay.moveTargetIsFirst ? pPropsTarget : pProps, 'class')}
-			>
-				{@render (overlay.move
-					? overlay.moveTargetIsFirst
-						? OverlayMoveTargetContent
-						: OverlayMoveRestContent
-					: OverlaySplitTargetContent)?.()}
-			</div>
-			<div
-				class="trioxide_overlay-panel-second
-				{(overlay.moveTargetIsFirst ? pProps?.class?.toString() : pPropsTarget?.class?.toString()) ||
-					sndCls}"
-				{...omit(overlay.moveTargetIsFirst ? pProps : pPropsTarget, 'class')}
-			>
-				{@render (overlay.move
-					? !overlay.moveTargetIsFirst
-						? OverlayMoveTargetContent
-						: OverlayMoveRestContent
-					: OverlaySplitRestContent)?.()}
-			</div>
+			{@render OverlayPanelDefault({
+				action,
+				isTarget: overlay.moveTargetIsFirst,
+				isFirst: true,
+				dir: overlay.dir,
+				s: overlay.s
+			})}
+			{@render OverlayPanelDefault({
+				action,
+				isTarget: overlay.moveTargetIsFirst,
+				isFirst: false,
+				dir: overlay.dir,
+				s: overlay.s
+			})}
 		</div>
 	{/if}
 </div>
 
-<style>
-	.trioxide_overlay {
-		display: flex;
-		z-index: 10;
-		position: absolute;
-		gap: var(--gap);
-		width: var(--w);
-		height: var(--h);
-		left: var(--x);
-		top: var(--y);
-		&.w {
-			display: flex;
-			cursor: col-resize;
-			flex-direction: row;
-			.trioxide_overlay-panel-first {
-				width: calc(var(--s) - var(--gap));
-			}
-			.trioxide_overlay-panel-second {
-				flex: 1;
-			}
-		}
+{#snippet OverlayPanelDefault({
+	dir,
+	s,
+	isTarget,
+	isFirst
+}: {
+	action: 'split' | 'move';
+	isTarget: boolean;
+	dir: PanelDir;
+	s: number;
+	isFirst: boolean;
+})}
+	<div
+		style:width={dir == 'w' ? `${s}%` : ''}
+		style:height={dir == 'h' ? `${s}%` : ''}
+		style:background-color={(isFirst ? isTarget : !isTarget) ? 'rgba(255, 255, 255, 0.1)' : ''}
+		style:flex={isFirst ? '' : '1'}
+	></div>
+{/snippet}
 
-		&.h {
-			cursor: row-resize;
-			flex-direction: column;
-			.trioxide_overlay-panel-first {
-				height: calc(var(--s) - var(--gap));
-			}
-			.trioxide_overlay-panel-second {
-				flex: 1;
-			}
-		}
-
-		&.move.w,
-		&.move.h {
-			cursor: grabbing;
-		}
-	}
-
-	.trioxide_ctr {
-		position: relative;
-		inset: 0;
-		width: 100%;
-		height: 100%;
-	}
-
-	.trioxide_panel-spliting-default,
-	.trioxide_panel-is-move-end-default {
-		border: transparent;
-	}
-
-	.trioxide_overlay-panel-default {
-		border-color: var(--trioxide_neutral-7);
-		border-radius: var(--radius-md);
-		border-width: 1px;
-	}
-	.trioxide_overlay-move-target-default {
-		background-color: var(--trioxide_neutral-a2);
-	}
-	.trioxide_overlay-split-target-default {
-		background-color: var(--trioxide_neutral-a2);
-	}
-
-	.trioxide_panel-is-move-start-default {
-		&::after {
-			content: '';
-			background-color: var(--trioxide_neutral-a2);
-			position: absolute;
-			inset: 0;
-			z-index: 10;
-			width: 100%;
-			height: 100%;
-			border-radius: var(--radius-md);
-			backdrop-filter: blur(var(--blur-sm));
-		}
-	}
-
-	.trioxide_resizer.w {
-		position: relative;
-		z-index: 10;
-		height: 100%;
-		width: var(--gap);
-		cursor: col-resize;
-		&::after {
-			content: '';
-			position: absolute;
-			top: 0;
-			left: 0;
-			height: 100%;
-			width: 12px;
-			transform: translateX(-50%);
-		}
-	}
-
-	.trioxide_resizer.h {
-		position: relative;
-		z-index: 10;
-		height: var(--gap);
-		width: 100%;
-		cursor: row-resize;
-		&::after {
-			content: '';
-			position: absolute;
-			top: 0;
-			left: 0;
-			height: 12px;
-			width: 100%;
-			transform: translateY(-50%);
-		}
-	}
-
-	.trioxide_resizer-default {
-		border-radius: var(--full);
-		outline: 0;
-		&:active {
-			background-color: var(--trioxide_neutral-7);
-		}
-		&:focus-visible {
-			background-color: var(--trioxide_highlight-7);
-		}
-
-		&.w {
-			height: calc(100% - 2 * var(--radius-md));
-		}
-		&.h {
-			width: var(100% - 2 * var(--radius-md));
-		}
-	}
-
-	.trioxide_panel-leaf-default {
-		border-color: var(--trioxide_neutral-7);
-		background-color: var(--trioxide_neutral-1);
-		border-radius: var(--radius-md);
-		border-width: 1px;
-	}
-
-	.trioxide_panel {
-		position: relative;
-		display: flex;
-		height: var(--h);
-		width: var(--w);
-		align-items: center;
-		justify-content: center;
-		&.w {
-			flex-direction: row;
-		}
-		&.h {
-			flex-direction: column;
-		}
-	}
-
-	.trioxide_hotcorner-default {
-		outline: 0;
-		border-radius: var(--radius-xs);
-		cursor: crosshair;
-		width: calc(var(--spacing) * 3);
-		height: calc(var(--spacing) * 3);
-		&:focus-visible {
-			background-color: var(--trioxide_highlight-7);
-		}
-		&:active {
-			background-color: transparent;
-		}
-		&.tl {
-			border-top-left-radius: calc(var(--radius-md) - 1px);
-		}
-		&.tr {
-			border-top-right-radius: calc(var(--radius-md) - 1px);
-		}
-		&.bl {
-			border-bottom-left-radius: calc(var(--radius-md) - 1px);
-		}
-		&.br {
-			border-bottom-right-radius: calc(var(--radius-md) - 1px);
-		}
-	}
-
-	.trioxide_hotcorner {
-		position: absolute;
-		&.tl {
-			top: 0;
-			left: 0;
-		}
-		&.tr {
-			top: 0;
-			right: 0;
-		}
-		&.bl {
-			bottom: 0;
-			left: 0;
-		}
-		&.br {
-			bottom: 0;
-			right: 0;
-		}
-	}
-</style>
+{#snippet EmptySnippet()}{/snippet}
