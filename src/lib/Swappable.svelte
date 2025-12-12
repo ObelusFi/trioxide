@@ -62,7 +62,7 @@
 				const nextRect = nextEl.getBoundingClientRect();
 
 				swap(items, grabbedIdx, grabbedIdx + 1);
-				startY = nextRect.y - yLoc;
+				startY = nextRect.y - yLoc - elementRect.height + nextRect.height;
 			} else if (direction < 0 && dy < -threshold && grabbedIdx > 0) {
 				const prevEl = elements.get(items[grabbedIdx - 1])!;
 				const prevRect = prevEl.getBoundingClientRect();

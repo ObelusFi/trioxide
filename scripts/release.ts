@@ -101,5 +101,4 @@ try {
 	console.warn('Skipped GitHub release (gh not available).');
 }
 
-await $`npm login`;
 await $`npm publish --access public`;
