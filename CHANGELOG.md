@@ -1,3 +1,7 @@
+## v0.4.5 - 2025-12-12
+
+- fix: clean docker
+
 ## v0.4.4 - 2025-12-07
 
 - chore: add Range2d doc
