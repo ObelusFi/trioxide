@@ -1,3 +1,7 @@
+## v0.4.6 - 2025-12-12
+
+- fix: export flow instead of viewport
+
 ## v0.4.5 - 2025-12-12
 
 - fix: clean docker
