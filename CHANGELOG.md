@@ -1,3 +1,7 @@
+## v0.4.8 - 2025-12-12
+
+- fix: swappable with different sizes
+
 ## v0.4.7 - 2025-12-12
 
 - fix: make swappable scale aware
