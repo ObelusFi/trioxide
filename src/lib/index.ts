@@ -16,7 +16,7 @@ export * from './Viewport.svelte';
 export { default as Viewport } from './Viewport.svelte';
 
 export * from './Flow.svelte';
-export { default as Flow } from './Viewport.svelte';
+export { default as Flow } from './Flow.svelte';
 
 export * from './Range2D.svelte';
 export { default as Range2D } from './Range2D.svelte';

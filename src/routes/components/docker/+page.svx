@@ -56,6 +56,7 @@ A dock-style layout manager that lets you split, move, and resize panels with bo
 
     <Docker
     	components={{ A, B, C }}
+    	overlayProps={()=>({class:"rounded-md overflow-hidden border border-neutral-7"})}
     	class="w-full h-full"
     	bind:layout
     	bind:api
