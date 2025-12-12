@@ -41,6 +41,10 @@
 		function onMouseMove(e: MouseEvent | TouchEvent) {
 			clearTimeout(timeout);
 			if (!isDragging) return;
+			const el = elements.get(item)!;
+			const elementRect = el.getBoundingClientRect();
+			const scale = elementRect.width / el.offsetWidth || 1;
+
 			let pageY;
 			if (e instanceof MouseEvent) {
 				pageY = e.pageY;
@@ -66,7 +70,7 @@
 				startY = prevRect.y - yLoc;
 			}
 
-			dy = pageY - startY;
+			dy = (pageY - startY) / scale;
 			prevMouseY = pageY;
 		}
 
@@ -78,6 +82,7 @@
 		}
 
 		function dragStart(e: MouseEvent | TouchEvent) {
+			e.stopPropagation();
 			timeout = setTimeout(() => {
 				let pageY;
 				if (e instanceof MouseEvent) {
@@ -107,6 +112,9 @@
 				// element binding
 				[createAttachmentKey()](el: HTMLElement) {
 					elements.set(item, el);
+					$effect(() => {
+						el.style.setProperty('translate', `0 ${dy}px`);
+					});
 
 					return () => {
 						document.body.removeEventListener('mouseup', onMouseUp);
@@ -117,9 +125,6 @@
 						clearTimeout(timeout);
 						elements.delete(item);
 					};
-				},
-				get style() {
-					return `translate: 0 ${dy}px;`;
 				}
 			},
 			handle: {
