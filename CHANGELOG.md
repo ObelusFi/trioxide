@@ -1,3 +1,7 @@
+## v0.4.10 - 2025-12-14
+
+- fix: pass props to main wrapper in viewport
+
 ## v0.4.9 - 2025-12-14
 
 - feat: add dynamic bg to viewport
