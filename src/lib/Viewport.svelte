@@ -334,19 +334,17 @@
 </script>
 
 <!-- This is a safary fix,to render sharp text -->
-<div style:isolation="isolate">
-	<div
-		role="application"
-		style:--pattern_color={patternColor}
-		bind:this={wrapper}
-		onmousedown={onMouseDown}
-		ontouchstart={onTouchStart}
-		style:overflow="hidden"
-		style:position="relative"
-		style:--s={viewport.zoom}
-		{...restParams}
-	>
+<div
+	{...restParams}
+	onmousedown={onMouseDown}
+	ontouchstart={onTouchStart}
+	style:--pattern_color={patternColor}
+	bind:this={wrapper}
+	style:isolation="isolate"
+>
+	<div style:overflow="clip" style:position="relative" style:width="100%" style:height="100%">
 		<div
+			style:--s={viewport.zoom}
 			style:--px="{viewport.x}px"
 			style:--py="{viewport.y}px"
 			style:transform-origin="top left"

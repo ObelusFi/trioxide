@@ -96,87 +96,93 @@ Flow tracks dragging, selection, and port hit-testing while you render the nodes
 - You handle: node layout and visuals, unique port IDs, connection rules via `validate-edge`, and any side effects when nodes/edges change.
 - `Node`, `Edge`, and `Port` are generic.
 
-<Viewport class="rounded-md border border-(--trioxide_neutral-7)" pattern="grid" pan-with-mouse>
-	<Flow
-		class="h-100 outline-none"
-		bind:nodes
-		bind:edges
-		bind:api
-		validate-edge={onEdge}
-		edge-type="smooth"
-		box-selection-props={{class:"border border-(--trioxide_highlight-10) bg-(--trioxide_highlight-a3)"}}
-		default-edge-path-props={(_, s) => ({
-			stroke: `${s ? 'var(--trioxide_highlight-10)' : 'var(--trioxide_neutral-10)'}`,
-			'stroke-linecap': 'round',
-			'stroke-width': 3
-		})}
-		tabindex={-1}
-		onkeyup={(e) => {
-			if (e.key != 'Backspace') return;
-			api.selectedNodes.forEach((n) => {
-				api.removeNode(n);
-			});
-			api.selectedEdges.forEach((e) => {
-				api.removeEdge(e);
-			});
-		}}
-	>
-		{#snippet Node({ node: n, dragBindings, portBindings, nodeBindings })}
-			{@const isDragging = api.selectedNodes.has(n)}
-			<div
-				class="absolute inline-flex rounded-sm border bg-(--trioxide_neutral-2) p-2 select-none {isDragging
-					? 'border-(--trioxide_highlight-10)'
-					: 'border-(--trioxide_neutral-7)'}"
-				{...dragBindings}
-				{...nodeBindings}
-			>
-				<div class="flex flex-col justify-center">
-					{#each n.ports.filter((e) => e.type == 'input') as s}
-						<div
-							class="z-10 h-4 w-4 rounded-full border {api.activePort?.[1] == s
-								? 'border-(--trioxide_highlight-10)'
-								: 'border-(--trioxide_neutral-10)'} {edges.some(
-								(e) => e.from == s.id || e.to === s.id
-							)
-								? 'bg-(--trioxide_neutral-10)'
-								: 'bg-(--trioxide_neutral-5)'}"
-							{...portBindings(s)}
-						></div>
-					{/each}
-				</div>
-				<div class="flex flex-col gap-4 p-2">
-					<button
-						class="button self-end text-red-10!"
-						onclick={() => api.removeNode(n)}
-						aria-label="Delete Node"
-					>
-						<i class="ri-delete-bin-2-line"></i>
-					</button>
-					<input
-						type="text"
-						class=" text-center outline-0"
-						bind:value={n.text}
-						onkeyup={(e) => e.stopPropagation()}
-					/>
-				</div>
-				<div class=" flex flex-col justify-center">
-					{#each n.ports.filter((e) => e.type == 'output') as s}
-						<div
-							class="z-10 h-4 w-4 rounded-full border bg-(--trioxide_neutral-5) {api
-								.activePort?.[1] == s
-								? 'border-(--trioxide_highlight-10)'
-								: 'border-(--trioxide_neutral-10)'} {edges.some(
-								(e) => e.from == s.id || e.to === s.id
-							)
-								? 'bg-(--trioxide_neutral-10)'
-								: 'bg-(--trioxide_neutral-5)'}"
-							{...portBindings(s)}
-						></div>
-					{/each}
-				</div>
-			</div>
-		{/snippet}
-	</Flow>
+<Viewport
+class="rounded-md border border-(--trioxide_neutral-7)"
+pattern="grid"
+pattern-color="var(--trioxide_neutral-3)"
+pan-with-mouse>
+
+    <Flow
+    	class="h-100 outline-none"
+    	bind:nodes
+    	bind:edges
+    	bind:api
+    	validate-edge={onEdge}
+    	edge-type="smooth"
+    	box-selection-props={{class:"border border-(--trioxide_highlight-10) bg-(--trioxide_highlight-a3)"}}
+    	default-edge-path-props={(_, s) => ({
+    		stroke: `${s ? 'var(--trioxide_highlight-10)' : 'var(--trioxide_neutral-10)'}`,
+    		'stroke-linecap': 'round',
+    		'stroke-width': 3
+    	})}
+    	tabindex={-1}
+    	onkeyup={(e) => {
+    		if (e.key != 'Backspace') return;
+    		api.selectedNodes.forEach((n) => {
+    			api.removeNode(n);
+    		});
+    		api.selectedEdges.forEach((e) => {
+    			api.removeEdge(e);
+    		});
+    	}}
+    >
+    	{#snippet Node({ node: n, dragBindings, portBindings, nodeBindings })}
+    		{@const isDragging = api.selectedNodes.has(n)}
+    		<div
+    			class="absolute inline-flex rounded-sm border bg-(--trioxide_neutral-2) p-2 select-none {isDragging
+    				? 'border-(--trioxide_highlight-10)'
+    				: 'border-(--trioxide_neutral-7)'}"
+    			{...dragBindings}
+    			{...nodeBindings}
+    		>
+    			<div class="flex flex-col justify-center">
+    				{#each n.ports.filter((e) => e.type == 'input') as s}
+    					<div
+    						class="z-10 h-4 w-4 rounded-full border {api.activePort?.[1] == s
+    							? 'border-(--trioxide_highlight-10)'
+    							: 'border-(--trioxide_neutral-10)'} {edges.some(
+    							(e) => e.from == s.id || e.to === s.id
+    						)
+    							? 'bg-(--trioxide_neutral-10)'
+    							: 'bg-(--trioxide_neutral-5)'}"
+    						{...portBindings(s)}
+    					></div>
+    				{/each}
+    			</div>
+    			<div class="flex flex-col gap-4 p-2">
+    				<button
+    					class="button self-end text-red-10!"
+    					onclick={() => api.removeNode(n)}
+    					aria-label="Delete Node"
+    				>
+    					<i class="ri-delete-bin-2-line"></i>
+    				</button>
+    				<input
+    					type="text"
+    					class=" text-center outline-0"
+    					bind:value={n.text}
+    					onkeyup={(e) => e.stopPropagation()}
+    				/>
+    			</div>
+    			<div class=" flex flex-col justify-center">
+    				{#each n.ports.filter((e) => e.type == 'output') as s}
+    					<div
+    						class="z-10 h-4 w-4 rounded-full border bg-(--trioxide_neutral-5) {api
+    							.activePort?.[1] == s
+    							? 'border-(--trioxide_highlight-10)'
+    							: 'border-(--trioxide_neutral-10)'} {edges.some(
+    							(e) => e.from == s.id || e.to === s.id
+    						)
+    							? 'bg-(--trioxide_neutral-10)'
+    							: 'bg-(--trioxide_neutral-5)'}"
+    						{...portBindings(s)}
+    					></div>
+    				{/each}
+    			</div>
+    		</div>
+    	{/snippet}
+    </Flow>
+
 </Viewport>
 
 <p class="mt-2 text-sm text-(--trioxide_neutral-11)">
