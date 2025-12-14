@@ -1,3 +1,7 @@
+## v0.4.9 - 2025-12-14
+
+- feat: add dynamic bg to viewport
+
 ## v0.4.8 - 2025-12-12
 
 - fix: swappable with different sizes
