@@ -96,7 +96,7 @@ Flow tracks dragging, selection, and port hit-testing while you render the nodes
 - You handle: node layout and visuals, unique port IDs, connection rules via `validate-edge`, and any side effects when nodes/edges change.
 - `Node`, `Edge`, and `Port` are generic.
 
-<Viewport class="rounded-md border border-(--trioxide_neutral-7)" pattern="square" pan-with-mouse>
+<Viewport class="rounded-md border border-(--trioxide_neutral-7)" pattern="grid" pan-with-mouse>
 	<Flow
 		class="h-100 outline-none"
 		bind:nodes

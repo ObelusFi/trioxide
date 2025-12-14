@@ -5,7 +5,7 @@
 	let {
 		children,
 		'min-zoom': minZoom = 0.2,
-		'max-zoom': maxZoom = 10,
+		'max-zoom': maxZoom = 20,
 		viewport = $bindable({
 			x: 0,
 			y: 0,
@@ -13,8 +13,9 @@
 		}),
 		pattern = 'none',
 		'pan-with-mouse': panOnMouse = true,
-		'pattern-color': patternColor = 'var(--trioxide_neutral-4)',
-		'pattern-size': patternSize = (z) => (z > 1 ? 10 * viewport.zoom : 0),
+		'pattern-color': patternColor = '#fff',
+		'min-cell-size': minGridSize = 3,
+		'grid-size': gridSize = 5,
 		...restParams
 	}: {
 		children?: Snippet;
@@ -23,8 +24,9 @@
 		viewport?: { x: number; y: number; zoom: number };
 		'pan-with-mouse'?: boolean;
 		'pattern-color'?: string;
-		pattern?: 'none' | 'square' | 'circle';
-		'pattern-size'?: (zoom: number) => number;
+		pattern?: 'dots' | 'grid' | 'cross' | 'none';
+		'min-cell-size'?: number;
+		'grid-size'?: number;
 	} & SvelteHTMLElements['div'] = $props();
 
 	let wrapper: HTMLDivElement;
@@ -32,6 +34,20 @@
 	let startX = 0;
 	let startY = 0;
 	let pinchDistance = 0;
+	let ctx: CanvasRenderingContext2D = $state()!;
+	let canvas: HTMLCanvasElement;
+	let canvasRect = $state();
+	let pColor = '';
+	let timeout: ReturnType<typeof requestAnimationFrame>;
+
+	function watchColor() {
+		const v = getComputedStyle(document.documentElement).getPropertyValue(patternColor);
+		if (v !== pColor) {
+			pColor = v;
+		}
+
+		timeout = requestAnimationFrame(watchColor);
+	}
 
 	const clamp = (v: number, min: number, max: number) => {
 		return Math.min(Math.max(v, min), max);
@@ -111,6 +127,7 @@
 	};
 
 	const onMouseDown = (e: MouseEvent) => {
+		if (e.button !== 0) return;
 		if (!panOnMouse) return;
 		startPan(e.clientX, e.clientY);
 	};
@@ -136,6 +153,165 @@
 
 	const onMouseUp = () => (isPanning = false);
 
+	function update({ x, y, zoom }: { x: number; y: number; zoom: number }) {
+		const dpr = window.devicePixelRatio || 1;
+		const w = canvas.clientWidth;
+		const h = canvas.clientHeight;
+
+		canvas.width = w * dpr;
+		canvas.height = h * dpr;
+		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+		ctx.clearRect(0, 0, w, h);
+		const p = Math.log(maxZoom / zoom) / Math.log(gridSize);
+		const i0 = Math.floor(p);
+		const i1 = i0 + 1;
+
+		const a1 = Math.min(Math.max(p - i0, 0), 1);
+		const a0 = 1 - a1;
+		const size0 = minGridSize * gridSize ** i0 * zoom;
+		const size1 = minGridSize * gridSize ** i1 * zoom;
+
+		drawPattern(size0, a0, pColor, x, y, w, h);
+		drawPattern(size1, a1, pColor, x, y, w, h);
+	}
+
+	function drawDots(
+		size: number,
+		alpha: number,
+		color: string,
+		x: number,
+		y: number,
+		w: number,
+		h: number
+	) {
+		ctx.save();
+		ctx.globalAlpha = alpha;
+		ctx.fillStyle = color;
+
+		const ox = ((x % size) + size) % size;
+		const oy = ((y % size) + size) % size;
+
+		for (let yy = oy; yy < h; yy += size) {
+			for (let xx = ox; xx < w; xx += size) {
+				ctx.beginPath();
+				ctx.arc(xx, yy, 1, 0, 2 * Math.PI);
+				ctx.fill();
+				// ctx.fillRect(xx, yy, 2, 2);
+			}
+		}
+
+		ctx.restore();
+	}
+
+	function drawGridLines(
+		size: number,
+		alpha: number,
+		color: string,
+		x: number,
+		y: number,
+		w: number,
+		h: number
+	) {
+		ctx.save();
+		ctx.globalAlpha = alpha;
+		ctx.strokeStyle = color;
+		ctx.lineWidth = 1;
+
+		const ox = ((x % size) + size) % size;
+		const oy = ((y % size) + size) % size;
+
+		ctx.beginPath();
+
+		for (let xx = ox; xx < w; xx += size) {
+			ctx.moveTo(xx, 0);
+			ctx.lineTo(xx, h);
+		}
+
+		for (let yy = oy; yy < h; yy += size) {
+			ctx.moveTo(0, yy);
+			ctx.lineTo(w, yy);
+		}
+
+		ctx.stroke();
+		ctx.restore();
+	}
+
+	function drawCrosses(
+		size: number,
+		alpha: number,
+		color: string,
+		x: number,
+		y: number,
+		w: number,
+		h: number
+	) {
+		ctx.save();
+		ctx.globalAlpha = alpha;
+		ctx.strokeStyle = color;
+		ctx.lineWidth = 1;
+
+		const arm = minGridSize;
+
+		const ox = ((x % size) + size) % size;
+		const oy = ((y % size) + size) % size;
+
+		ctx.beginPath();
+
+		for (let yy = oy; yy < h; yy += size) {
+			for (let xx = ox; xx < w; xx += size) {
+				ctx.moveTo(xx - arm, yy);
+				ctx.lineTo(xx + arm, yy);
+				ctx.moveTo(xx, yy - arm);
+				ctx.lineTo(xx, yy + arm);
+			}
+		}
+
+		ctx.stroke();
+		ctx.restore();
+	}
+
+	function drawPattern(
+		size: number,
+		alpha: number,
+		color: string,
+		x: number,
+		y: number,
+		w: number,
+		h: number
+	) {
+		if (alpha <= 0 || size <= 0) return;
+
+		switch (pattern) {
+			case 'dots':
+				drawDots(size, alpha, color, x, y, w, h);
+				break;
+			case 'grid':
+				drawGridLines(size, alpha, color, x, y, w, h);
+				break;
+			case 'cross':
+				drawCrosses(size, alpha, color, x, y, w, h);
+				break;
+		}
+	}
+
+	$effect(() => {
+		canvasRect;
+		if (!ctx) return;
+		update(viewport);
+	});
+
+	$effect(() => {
+		if (patternColor && patternColor.startsWith('var')) {
+			patternColor = patternColor.replace('var(', '').replace(')', '');
+			watchColor();
+		} else {
+			cancelAnimationFrame(timeout);
+		}
+		return () => {
+			cancelAnimationFrame(timeout);
+		};
+	});
+	let force: HTMLElement;
 	onMount(() => {
 		wrapper.addEventListener('wheel', onWheel, { passive: false });
 
@@ -144,6 +320,7 @@
 
 		wrapper.addEventListener('mousemove', onMouseMove);
 		wrapper.addEventListener('touchmove', onTouchMove, { passive: false });
+		ctx = canvas.getContext('2d')!;
 		return () => {
 			wrapper.removeEventListener('wheel', onWheel);
 
@@ -156,31 +333,39 @@
 	});
 </script>
 
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div
-	role="application"
-	style:background-image={pattern == 'circle'
-		? 'radial-gradient(var(--pattern_color) 1px, transparent 0)'
-		: pattern === 'square'
-			? 'linear-gradient(to right, var(--pattern_color) 1px, transparent 1px),linear-gradient(to bottom, var(--pattern_color) 0.5px, transparent 0.5px);'
-			: ''}
-	style:background-size={pattern == 'none' ? '' : 'var(--bg-s) var(--bg-s)'}
-	style:background-position={pattern == 'none' ? '' : 'var(--px) var(--py)'}
-	style:--pattern_color={patternColor}
-	{...restParams}
-	bind:this={wrapper}
-	onmousedown={onMouseDown}
-	ontouchstart={onTouchStart}
-	style:overflow="clip"
-	style:--s={viewport.zoom}
-	style:--px="{viewport.x}px"
-	style:--py="{viewport.y}px"
-	style:--bg-s="{patternSize(viewport.zoom)}px"
->
+<!-- This is a safary fix,to render sharp text -->
+<div style:isolation="isolate">
 	<div
-		style:transform="translate(var(--px), var(--py)) scale(var(--s))"
-		style:transform-origin="top left"
+		role="application"
+		style:--pattern_color={patternColor}
+		bind:this={wrapper}
+		onmousedown={onMouseDown}
+		ontouchstart={onTouchStart}
+		style:overflow="hidden"
+		style:position="relative"
+		style:--s={viewport.zoom}
+		{...restParams}
 	>
-		{@render children?.()}
+		<div
+			style:--px="{viewport.x}px"
+			style:--py="{viewport.y}px"
+			style:transform-origin="top left"
+			bind:this={force}
+			style:z-index="1"
+			style:transform="translateX({viewport.x}px) translateY({viewport.y}px) scale({viewport.zoom})"
+		>
+			{@render children?.()}
+		</div>
+		<canvas
+			style:position="absolute"
+			style:left="0"
+			style:top="0"
+			style:width="100%"
+			style:height="100%"
+			style:pointer-events="none"
+			bind:this={canvas}
+			bind:contentRect={canvasRect}
+			style="z-index: -1;"
+		></canvas>
 	</div>
 </div>
