@@ -1,0 +1,79 @@
+<script>
+	import Marquee from '$lib/Marquee.svelte';
+	const SPEED = 200;
+	let speed = $state(SPEED);
+	const slowDown = () => {
+		speed = 0;
+	};
+	const speedUp = () => {
+		speed = SPEED;
+	};
+</script>
+
+# Marquee
+
+<Marquee
+style={`mask-image:linear-gradient(to right, rgba(0, 0, 0, 0) 0%, rgb(0, 0, 0) 20%, rgb(0, 0, 0) 80%, rgba(0, 0, 0, 0) 100%)`}
+class="m-auto flex w-full gap-10 overflow-hidden text-2xl"
+onmouseover={slowDown}
+onmouseleave={speedUp}
+{speed}>
+
+    <div class="flex min-w-max items-center gap-1">
+    	<i class="ri-svelte-fill text-3xl"></i>
+    	<span>Svelte</span>
+    </div>
+    <div class="flex min-w-max items-center gap-1">
+    	<i class="ri-javascript-fill text-3xl"></i>
+    	<span>Javascript</span>
+    </div>
+    <div class="flex min-w-max items-center gap-1">
+    	<i class="ri-npmjs-fill text-3xl"></i>
+    	<span>NPM</span>
+    </div>
+    <div class="flex min-w-max items-center gap-1">
+    	<i class="ri-nodejs-fill text-3xl"></i>
+    	<span>Node.js</span>
+    </div>
+    <div class="flex min-w-max items-center gap-1">
+    	<i class="ri-open-source-fill text-3xl"></i>
+    	<span>Opensource</span>
+    </div>
+    <div class="flex min-w-max items-center gap-1">
+    	<i class="ri-tailwind-css-fill text-3xl"></i>
+    	<span>Tailwind CSS</span>
+    </div>
+    <div class="flex min-w-max items-center gap-1">
+    	<i class="ri-github-fill text-3xl"></i>
+    	<span>Github</span>
+    </div>
+
+</Marquee>
+
+<p class="mt-2 text-sm text-(--trioxide_neutral-11)">
+A smooth, performant marquee component that scrolls its children horizontally at a constant speed. It handles resizing and pauses on hover in this demo.
+</p>
+
+---
+
+## Usage
+
+```svelte
+<script lang="ts">
+	import Marquee from '$lib/Marquee.svelte';
+</script>
+
+<Marquee speed={200} class="overflow-hidden">
+	<div>Item 1</div>
+	<div>Item 2</div>
+	<div>Item 3</div>
+</Marquee>
+```
+
+---
+
+## Props
+
+- `speed`: number, default `200`, the speed in pixels per second at which the content scrolls.
+- `children`: snippet that renders the content to be scrolled.
+- Remaining `HTMLDivElement` props apply to the outer container (e.g., `class`, `style`, `aria-*`).

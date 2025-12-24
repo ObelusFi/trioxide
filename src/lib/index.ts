@@ -20,3 +20,6 @@ export { default as Flow } from './Flow.svelte';
 
 export * from './Range2D.svelte';
 export { default as Range2D } from './Range2D.svelte';
+
+
+export { default as Marquee } from './Marquee.svelte'
