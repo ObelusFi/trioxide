@@ -14,7 +14,7 @@
 
 <Marquee
 style={`mask-image:linear-gradient(to right, rgba(0, 0, 0, 0) 0%, rgb(0, 0, 0) 20%, rgb(0, 0, 0) 80%, rgba(0, 0, 0, 0) 100%)`}
-class="m-auto flex w-full gap-10 overflow-hidden text-2xl"
+class="m-auto flex w-full gap-10 overflow-hidden text-2xl my-8"
 onmouseover={slowDown}
 onmouseleave={speedUp}
 {speed}>
@@ -77,3 +77,5 @@ A smooth, performant marquee component that scrolls its children horizontally at
 - `speed`: number, default `200`, the speed in pixels per second at which the content scrolls.
 - `children`: snippet that renders the content to be scrolled.
 - Remaining `HTMLDivElement` props apply to the outer container (e.g., `class`, `style`, `aria-*`).
+
+---

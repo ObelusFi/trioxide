@@ -67,6 +67,6 @@
 	});
 </script>
 
-<div style:overflow="hidden" {...props} bind:this={marqueeEl}>
+<div style:overflow="hidden" style:display="flex" {...props} bind:this={marqueeEl}>
 	{@render children?.()}
 </div>
