@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { SvelteHTMLElements } from 'svelte/elements';
+	type Direction = 'left' | 'right';
 	let {
 		speed = 200,
+		direction = 'left',
 		children,
 		...props
-	}: { speed?: number } & SvelteHTMLElements['div'] = $props();
+	}: { speed?: number; direction?: Direction } & SvelteHTMLElements['div'] = $props();
 	let marqueeEl: HTMLElement;
 	let stop = false;
 	onMount(() => {
