@@ -4,7 +4,7 @@
 	type Direction = 'left' | 'right';
 	let {
 		speed = 200,
-		direction = 'left',
+		direction = 'right',
 		children,
 		...props
 	}: { speed?: number; direction?: Direction } & SvelteHTMLElements['div'] = $props();
@@ -52,7 +52,7 @@
 			if (!lastT) lastT = now;
 			const dt = (now - lastT) / 1000;
 			lastT = now;
-			s += stop ? 0 : speed * dt;
+			s += stop ? 0 : speed * dt * (direction === 'right' ? 1 : -1);
 			for (let [e, wrapWidth, min] of state || []) {
 				const x = ((((s - min) % wrapWidth) + wrapWidth) % wrapWidth) + min;
 				e.style.translate = `${x}px`;
