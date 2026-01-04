@@ -63,7 +63,7 @@ A smooth, performant marquee component that scrolls its children horizontally at
 	import Marquee from '$lib/Marquee.svelte';
 </script>
 
-<Marquee speed={200} class="overflow-hidden">
+<Marquee speed={200} direction="right" class="overflow-hidden">
 	<div>Item 1</div>
 	<div>Item 2</div>
 	<div>Item 3</div>
@@ -75,6 +75,7 @@ A smooth, performant marquee component that scrolls its children horizontally at
 ## Props
 
 - `speed`: number, default `200`, the speed in pixels per second at which the content scrolls.
+- `direction`: either `left` or `right`, default `right`, the direction the content scrolls in.
 - `children`: snippet that renders the content to be scrolled.
 - Remaining `HTMLDivElement` props apply to the outer container (e.g., `class`, `style`, `aria-*`).
 
