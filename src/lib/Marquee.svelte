@@ -10,8 +10,10 @@
 	}: { speed?: number; direction?: Direction } & SvelteHTMLElements['div'] = $props();
 	let marqueeEl: HTMLElement;
 	let stop = false;
+	let dir = $state('rtl');
 	onMount(() => {
-		let state: [HTMLElement, number, number][];
+		let state: [HTMLElement, number, number][] = [];
+		dir = window.getComputedStyle(marqueeEl).direction;
 		const init = () => {
 			const pr = marqueeEl.getBoundingClientRect();
 			const children = [...marqueeEl.children] as HTMLElement[];
@@ -51,9 +53,11 @@
 		const update = (now: number) => {
 			if (!lastT) lastT = now;
 			const dt = (now - lastT) / 1000;
+			// need to check if this is too expensive
+			// dir = window.getComputedStyle(marqueeEl).direction;
 			lastT = now;
 			s += stop ? 0 : speed * dt * (direction === 'right' ? 1 : -1);
-			for (let [e, wrapWidth, min] of state || []) {
+			for (let [e, wrapWidth, min] of state) {
 				const x = ((((s - min) % wrapWidth) + wrapWidth) % wrapWidth) + min;
 				e.style.translate = `${x}px`;
 			}
@@ -69,6 +73,12 @@
 	});
 </script>
 
-<div style:overflow="hidden" style:display="flex" {...props} bind:this={marqueeEl}>
+<div
+	style:overflow="hidden"
+	style:flex-direction={dir == 'ltr' ? 'row' : 'row-reverse'}
+	style:display="flex"
+	{...props}
+	bind:this={marqueeEl}
+>
 	{@render children?.()}
 </div>
